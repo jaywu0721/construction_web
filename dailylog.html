@@ -3,7 +3,290 @@
 <head>
 <meta charset="UTF-8">
 <title>施工日誌</title>
+
 <link rel="stylesheet" href="css/style.css">
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+<style>
+/* 模態框樣式 */
+.modal {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0,0,0,0.7);
+  z-index: 1000;
+  overflow: auto;
+}
+
+.modal-content {
+  background-color: white;
+  margin: 5% auto;
+  padding: 20px;
+  width: 80%;
+  max-width: 800px;
+  border-radius: 8px;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
+.close-btn {
+  float: right;
+  font-size: 24px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.log-detail-item {
+  margin-bottom: 15px;
+}
+
+.log-detail-label {
+  font-weight: bold;
+  margin-bottom: 5px;
+}
+
+.log-detail-value {
+  padding: 8px;
+  background-color: #f9f9f9;
+  border-radius: 4px;
+  white-space: pre-wrap;
+}
+
+.modal-actions {
+  margin-top: 20px;
+  text-align: center;
+}
+
+.clickable-row {
+  cursor: pointer;
+}
+
+.clickable-row:hover {
+  background-color: #eaf3ff;
+}
+
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  #printArea, #printArea * {
+    visibility: visible;
+  }
+  #printArea {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+  }
+  .no-print {
+    display: none !important;
+  }
+}
+
+/* 保留欄位樣式 */
+.reserved-feature {
+  background-color: #f8f9fa;
+  padding: 10px;
+  border-left: 4px solid #2d7ff9;
+  margin-bottom: 15px;
+}
+
+/* 工作紀錄表格樣式 */
+.worker-row {
+  background-color: #f5f5f5;
+}
+
+.worker-row:hover {
+  background-color: #e0e0e0;
+}
+
+.worker-summary {
+  margin-top: 15px;
+  padding: 10px;
+  background-color: #e8f4ff;
+  border-radius: 5px;
+  font-weight: bold;
+}
+
+.action-btn {
+  margin-top: 10px;
+  background-color: #4CAF50;
+}
+
+/* 篩選按鈕樣式 */
+.filter-buttons {
+  margin: 15px 0;
+  text-align: right;
+}
+
+.filter-btn {
+  margin-left: 8px;
+  padding: 6px 12px;
+  background-color: #f0f0f0;
+  color: #333;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.filter-btn.active {
+  background-color: #2d7ff9;
+  color: white;
+  border-color: #2d7ff9;
+}
+
+/* 編輯模態框樣式 */
+.edit-modal {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0,0,0,0.7);
+  z-index: 1000;
+  overflow: auto;
+}
+
+.edit-modal-content {
+  background-color: white;
+  margin: 5% auto;
+  padding: 20px;
+  width: 80%;
+  max-width: 800px;
+  border-radius: 8px;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
+.edit-form-group {
+  margin-bottom: 15px;
+}
+
+.edit-form-label {
+  display: block;
+  font-weight: bold;
+  margin-bottom: 5px;
+}
+
+.edit-form-input {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.edit-form-textarea {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  min-height: 100px;
+}
+
+.edit-modal-actions {
+  margin-top: 20px;
+  text-align: right;
+}
+
+.edit-modal-actions button {
+  margin-left: 10px;
+}
+
+/* 出工紀錄輔助工具樣式 */
+.worker-helper {
+  margin-top: 10px;
+  margin-bottom: 20px;
+  padding: 15px;
+  background-color: #f8f9fa;
+  border-radius: 5px;
+  border: 1px solid #e0e0e0;
+}
+
+.worker-helper-title {
+  font-weight: bold;
+  margin-bottom: 10px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.worker-helper-toggle {
+  background-color: #f0f0f0;
+  border: 1px solid #ddd;
+  padding: 4px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.worker-helper-content {
+  display: block;
+}
+
+/* 警告模態框樣式 */
+.warning-modal {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0,0,0,0.7);
+  z-index: 1100;
+}
+
+.warning-modal-content {
+  background-color: white;
+  margin: 15% auto;
+  padding: 20px;
+  width: 60%;
+  max-width: 500px;
+  border-radius: 8px;
+  text-align: center;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+}
+
+.warning-title {
+  color: #e74c3c;
+  font-size: 18px;
+  margin-bottom: 15px;
+}
+
+.warning-message {
+  margin-bottom: 20px;
+}
+
+.warning-actions {
+  display: flex;
+  justify-content: center;
+  gap: 15px;
+}
+
+.warning-btn {
+  padding: 8px 15px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.warning-btn-edit {
+  background-color: #3498db;
+  color: white;
+  border: none;
+}
+
+.warning-btn-cancel {
+  background-color: #f0f0f0;
+  color: #333;
+  border: 1px solid #ddd;
+}
+</style>
+
 </head>
 
 <body>
@@ -12,78 +295,854 @@
 
 <h2>施工日誌</h2>
 
+<h3>基本資料</h3>
+
 日期
-<input id="date" type="date">
+<input type="date" id="date" onchange="updateWorkersByDate()">
 
-施工內容
-<textarea id="content"></textarea>
+天氣(上午)
+<input id="weather_am">
 
-<button onclick="addLog()">新增</button>
+天氣(下午)
+<input id="weather_pm">
+
+填表人
+<input id="author">
+
+<h3>施工進度</h3>
+
+<!-- 替換為大型文字區域 -->
+<textarea id="progress" rows="6" placeholder="請在此輸入施工進度內容..."></textarea>
+
+<!-- 出工紀錄輔助工具 -->
+<div class="worker-helper">
+  <div class="worker-helper-title">
+    <span>出工紀錄輔助工具</span>
+    <button class="worker-helper-toggle" onclick="toggleWorkerHelper()">顯示/隱藏</button>
+  </div>
+  <div class="worker-helper-content" id="worker-helper-content">
+    <div id="workers_summary" class="worker-summary" style="display:none;"></div>
+    
+    <div style="text-align:right; margin-bottom:10px;">
+      <button class="action-btn" onclick="writeWorkerInfoToProgress()">將出工紀錄寫入施工進度</button>
+    </div>
+    
+    <table>
+    <thead>
+    <tr>
+    <th>日期</th>
+    <th>工種</th>
+    <th>人數</th>
+    <th>工作內容</th>
+    </tr>
+    </thead>
+    
+    <tbody id="workers_table"></tbody>
+    </table>
+  </div>
+</div>
+
+<h3>材料管理</h3>
+
+<div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 10px;">
+  <div>
+    材料名稱
+    <input id="material_name">
+  </div>
+  <div>
+    數量
+    <input id="material_qty">
+  </div>
+  <div>
+    單位
+    <input id="material_unit">
+  </div>
+  <div>
+    用途
+    <input id="material_purpose">
+  </div>
+</div>
+
+<button onclick="addMaterial()" style="margin-top: 10px; width: auto;">新增材料</button>
+
+<div id="materials_list" style="margin-top: 10px;"></div>
+
+<h3>重要事項</h3>
+
+監造單位指示
+<textarea id="supervisor"></textarea>
+
+異常狀況通報
+<textarea id="issue"></textarea>
+
+專任工程人員督察紀錄
+<textarea id="engineer"></textarea>
+
+待辦事項
+<div class="reserved-feature">
+  <p>此功能將來會與其他系統連動。目前為預留欄位。</p>
+</div>
+
+<h3>自主檢查</h3>
+
+施工前職安檢查紀錄
+<div class="reserved-feature">
+  <p>此功能將來會與其他系統連動。目前為預留欄位。</p>
+</div>
+
+<h3>品質管理</h3>
+<div class="reserved-feature">
+  <p>此功能將來會與其他系統連動。目前為預留欄位。</p>
+</div>
+
+<br><br>
+
+<button onclick="checkAndAddLog()">新增施工日誌</button>
+
+<button onclick="generatePDF()">匯出監造日報PDF</button>
+
+<h3>施工日誌紀錄</h3>
+
+<div class="filter-buttons">
+  <button class="filter-btn" onclick="filterLogs(7)" id="filter-7days">最近7天</button>
+  <button class="filter-btn" onclick="filterLogs(14)" id="filter-14days">最近14天</button>
+  <button class="filter-btn active" onclick="filterLogs(0)" id="filter-all">全部</button>
+</div>
 
 <table>
 
 <thead>
 <tr>
 <th>日期</th>
-<th>施工內容</th>
-<th>刪除</th>
+<th>施工進度</th>
+<th>填表人</th>
+<th>操作</th>
 </tr>
 </thead>
 
-<tbody id="list"></tbody>
+<tbody id="log_list"></tbody>
 
 </table>
+
+<!-- 詳細資料模態框 -->
+<div id="logDetailModal" class="modal">
+  <div class="modal-content">
+    <span class="close-btn" onclick="closeLogDetail()">&times;</span>
+    <div id="printArea">
+      <h2>施工日誌詳細資料</h2>
+      <div id="logDetailContent"></div>
+    </div>
+    <div class="modal-actions no-print">
+      <button onclick="printLogDetail()">列印</button>
+      <button onclick="closeLogDetail()">關閉</button>
+    </div>
+  </div>
+</div>
+
+<!-- 編輯日誌模態框 -->
+<div id="editLogModal" class="edit-modal">
+  <div class="edit-modal-content">
+    <span class="close-btn" onclick="closeEditLog()">&times;</span>
+    <h2>編輯施工日誌</h2>
+    
+    <div class="edit-form-group">
+      <label class="edit-form-label">日期</label>
+      <input type="date" id="edit_date" class="edit-form-input">
+    </div>
+    
+    <div class="edit-form-group">
+      <label class="edit-form-label">天氣(上午)</label>
+      <input id="edit_weather_am" class="edit-form-input">
+    </div>
+    
+    <div class="edit-form-group">
+      <label class="edit-form-label">天氣(下午)</label>
+      <input id="edit_weather_pm" class="edit-form-input">
+    </div>
+    
+    <div class="edit-form-group">
+      <label class="edit-form-label">填表人</label>
+      <input id="edit_author" class="edit-form-input">
+    </div>
+    
+    <div class="edit-form-group">
+      <label class="edit-form-label">施工進度</label>
+      <textarea id="edit_progress" class="edit-form-textarea"></textarea>
+    </div>
+    
+    <div class="edit-form-group">
+      <label class="edit-form-label">監造單位指示</label>
+      <textarea id="edit_supervisor" class="edit-form-textarea"></textarea>
+    </div>
+    
+    <div class="edit-form-group">
+      <label class="edit-form-label">異常狀況通報</label>
+      <textarea id="edit_issue" class="edit-form-textarea"></textarea>
+    </div>
+    
+    <div class="edit-form-group">
+      <label class="edit-form-label">專任工程人員督察紀錄</label>
+      <textarea id="edit_engineer" class="edit-form-textarea"></textarea>
+    </div>
+    
+    <div class="edit-modal-actions">
+      <button onclick="closeEditLog()">取消</button>
+      <button onclick="saveEditLog()">儲存</button>
+    </div>
+  </div>
+</div>
+
+<!-- 日期重複警告模態框 -->
+<div id="duplicateDateModal" class="warning-modal">
+  <div class="warning-modal-content">
+    <div class="warning-title">日期重複提醒</div>
+    <div class="warning-message">
+      您選擇的日期 <span id="duplicate-date"></span> 已經有施工日誌記錄。
+      <br><br>
+      請從施工日誌紀錄中編輯現有記錄，而不是創建重複記錄。
+    </div>
+    <div class="warning-actions">
+      <button class="warning-btn warning-btn-edit" onclick="editDuplicateLog()">前往編輯</button>
+      <button class="warning-btn warning-btn-cancel" onclick="closeDuplicateWarning()">取消</button>
+    </div>
+  </div>
+</div>
 
 <script src="js/main.js"></script>
 
 <script>
 
 let logs = JSON.parse(localStorage.getItem("logs")) || [];
+let workers = JSON.parse(localStorage.getItem("workers")) || [];
+// 新增材料列表暫存
+let currentMaterials = [];
+// 儲存當前日期的出工紀錄
+let currentDateWorkers = [];
+// 當前正在編輯的日誌索引
+let currentEditingIndex = -1;
+// 當前篩選天數
+let currentFilterDays = 0;
+// 出工紀錄輔助工具顯示狀態
+let workerHelperVisible = true;
+// 存儲發現重複的日期索引
+let duplicateLogIndex = -1;
 
 function save(){
-localStorage.setItem("logs",JSON.stringify(logs));
+  localStorage.setItem("logs",JSON.stringify(logs));
 }
 
 function render(){
+  // 根據當前篩選條件顯示日誌
+  renderFilteredLogs();
+  
+  // 渲染當前材料列表
+  renderMaterials();
+  
+  // 更新出工紀錄
+  updateWorkersByDate();
+}
 
-let html="";
+// 切換出工紀錄輔助工具的顯示/隱藏
+function toggleWorkerHelper() {
+  const content = document.getElementById("worker-helper-content");
+  workerHelperVisible = !workerHelperVisible;
+  
+  if (workerHelperVisible) {
+    content.style.display = "block";
+  } else {
+    content.style.display = "none";
+  }
+}
 
-logs.forEach((l,i)=>{
+// 根據篩選條件渲染日誌
+function renderFilteredLogs() {
+  let filteredLogs = logs;
+  
+  if (currentFilterDays > 0) {
+    const today = new Date();
+    const cutoffDate = new Date(today);
+    cutoffDate.setDate(today.getDate() - currentFilterDays);
+    
+    filteredLogs = logs.filter(log => {
+      if (!log.date) return false;
+      const logDate = new Date(log.date);
+      return logDate >= cutoffDate;
+    });
+  }
+  
+  let html = "";
+  
+  filteredLogs.forEach((l, i) => {
+    const originalIndex = logs.indexOf(l);
+    html += `
+    <tr class="clickable-row" onclick="showLogDetail(${originalIndex})">
+      <td>${l.date}</td>
+      <td>${l.progress ? l.progress.substring(0, 30) + (l.progress.length > 30 ? '...' : '') : ''}</td>
+      <td>${l.author}</td>
+      <td>
+        <button onclick="editLog(${originalIndex}); event.stopPropagation();">
+          編輯
+        </button>
+        <button onclick="removeLog(${originalIndex}); event.stopPropagation();">
+          刪除
+        </button>
+      </td>
+    </tr>
+    `;
+  });
+  
+  document.getElementById("log_list").innerHTML = html;
+}
 
-html+=`
-<tr>
-<td>${l.date}</td>
-<td>${l.content}</td>
-<td><button onclick="remove(${i})">刪除</button></td>
-</tr>
-`;
+// 篩選日誌
+function filterLogs(days) {
+  currentFilterDays = days;
+  
+  // 更新篩選按鈕狀態
+  document.querySelectorAll('.filter-btn').forEach(btn => {
+    btn.classList.remove('active');
+  });
+  
+  if (days === 0) {
+    document.getElementById('filter-all').classList.add('active');
+  } else if (days === 7) {
+    document.getElementById('filter-7days').classList.add('active');
+  } else if (days === 14) {
+    document.getElementById('filter-14days').classList.add('active');
+  }
+  
+  renderFilteredLogs();
+}
 
-});
+// 檢查日期是否重複
+function checkDuplicateDate(date) {
+  if (!date) return -1;
+  
+  for (let i = 0; i < logs.length; i++) {
+    if (logs[i].date === date) {
+      return i;
+    }
+  }
+  
+  return -1;
+}
 
-document.getElementById("list").innerHTML=html;
+// 檢查並添加日誌，如有重複日期則顯示警告
+function checkAndAddLog() {
+  const selectedDate = document.getElementById("date").value;
+  
+  if (!selectedDate) {
+    alert("請選擇日期！");
+    return;
+  }
+  
+  // 檢查日期是否重複
+  const duplicateIndex = checkDuplicateDate(selectedDate);
+  
+  if (duplicateIndex !== -1) {
+    // 顯示重複日期警告
+    duplicateLogIndex = duplicateIndex;
+    document.getElementById("duplicate-date").textContent = selectedDate;
+    document.getElementById("duplicateDateModal").style.display = "block";
+  } else {
+    // 無重複，正常添加
+    addLog();
+  }
+}
 
+// 關閉重複日期警告
+function closeDuplicateWarning() {
+  document.getElementById("duplicateDateModal").style.display = "none";
+  duplicateLogIndex = -1;
+}
+
+// 編輯重複日期的日誌
+function editDuplicateLog() {
+  if (duplicateLogIndex !== -1) {
+    // 關閉警告
+    document.getElementById("duplicateDateModal").style.display = "none";
+    
+    // 打開編輯模態框
+    editLog(duplicateLogIndex);
+    
+    // 重置索引
+    duplicateLogIndex = -1;
+  }
+}
+
+// 根據選取的日期過濾出工紀錄
+function updateWorkersByDate() {
+  let selectedDate = document.getElementById("date").value;
+  
+  if (!selectedDate) {
+    // 如果沒有選擇日期，顯示所有紀錄
+    renderAllWorkers();
+    return;
+  }
+  
+  // 篩選出與所選日期相符的出工紀錄
+  currentDateWorkers = workers.filter(worker => worker.date === selectedDate);
+  
+  let workers_html = "";
+  let totalWorkers = 0;
+  let workerTypes = {};
+  
+  currentDateWorkers.forEach(w => {
+    workers_html += `
+    <tr class="worker-row">
+      <td>${w.date}</td>
+      <td>${w.type || ''}</td>
+      <td>${w.count || '0'}</td>
+      <td>${w.content || ''}</td>
+    </tr>
+    `;
+    
+    // 累計人數統計
+    const count = parseInt(w.count) || 0;
+    totalWorkers += count;
+    
+    // 工種統計
+    if (w.type) {
+      workerTypes[w.type] = (workerTypes[w.type] || 0) + count;
+    }
+  });
+  
+  document.getElementById("workers_table").innerHTML = workers_html;
+  
+  // 顯示摘要資訊
+  const workerSummary = document.getElementById("workers_summary");
+  
+  if (currentDateWorkers.length > 0) {
+    let typesSummary = Object.entries(workerTypes)
+      .map(([type, count]) => `${type}: ${count}人`)
+      .join('，');
+      
+    workerSummary.innerHTML = `今日出工: 共${totalWorkers}人 (${typesSummary})`;
+    workerSummary.style.display = "block";
+  } else {
+    workerSummary.style.display = "none";
+  }
+}
+
+// 顯示所有出工紀錄
+function renderAllWorkers() {
+  let workers_html = "";
+  
+  workers.forEach(w => {
+    workers_html += `
+    <tr>
+      <td>${w.date || ''}</td>
+      <td>${w.type || ''}</td>
+      <td>${w.count || ''}</td>
+      <td>${w.content || ''}</td>
+    </tr>
+    `;
+  });
+  
+  document.getElementById("workers_table").innerHTML = workers_html;
+  document.getElementById("workers_summary").style.display = "none";
+}
+
+// 將出工紀錄寫入施工進度
+function writeWorkerInfoToProgress() {
+  if (currentDateWorkers.length === 0) {
+    alert("當前日期無出工紀錄！");
+    return;
+  }
+  
+  const currentProgress = document.getElementById("progress").value;
+  let workerInfo = "【出工人員紀錄】\n";
+  
+  currentDateWorkers.forEach(w => {
+    workerInfo += `${w.type || ''}：${w.count || '0'}人，工作內容：${w.content || '無'}\n`;
+  });
+  
+  // 如果已有內容，則添加換行
+  const newProgress = currentProgress ? currentProgress + "\n\n" + workerInfo : workerInfo;
+  
+  document.getElementById("progress").value = newProgress;
+}
+
+// 編輯日誌
+function editLog(index) {
+  const log = logs[index];
+  if (!log) return;
+  
+  // 設置當前編輯索引
+  currentEditingIndex = index;
+  
+  // 填充編輯表單
+  document.getElementById("edit_date").value = log.date || '';
+  document.getElementById("edit_weather_am").value = log.weather_am || '';
+  document.getElementById("edit_weather_pm").value = log.weather_pm || '';
+  document.getElementById("edit_author").value = log.author || '';
+  document.getElementById("edit_progress").value = log.progress || '';
+  document.getElementById("edit_supervisor").value = log.supervisor || '';
+  document.getElementById("edit_issue").value = log.issue || '';
+  document.getElementById("edit_engineer").value = log.engineer || '';
+  
+  // 顯示編輯模態框
+  document.getElementById("editLogModal").style.display = "block";
+}
+
+// 關閉編輯模態框
+function closeEditLog() {
+  document.getElementById("editLogModal").style.display = "none";
+  currentEditingIndex = -1;
+}
+
+// 保存編輯的日誌
+function saveEditLog() {
+  if (currentEditingIndex === -1) return;
+  
+  const newDate = document.getElementById("edit_date").value;
+  const originalDate = logs[currentEditingIndex].date;
+  
+  // 檢查是否修改了日期且新日期與其他日誌重複
+  if (newDate !== originalDate) {
+    const duplicateIndex = checkDuplicateDate(newDate);
+    if (duplicateIndex !== -1 && duplicateIndex !== currentEditingIndex) {
+      alert(`日期 ${newDate} 已存在其他施工日誌記錄，請選擇其他日期！`);
+      return;
+    }
+  }
+  
+  // 更新日誌數據
+  logs[currentEditingIndex] = {
+    ...logs[currentEditingIndex], // 保留原有數據，如材料列表等
+    date: newDate,
+    weather_am: document.getElementById("edit_weather_am").value,
+    weather_pm: document.getElementById("edit_weather_pm").value,
+    author: document.getElementById("edit_author").value,
+    progress: document.getElementById("edit_progress").value,
+    supervisor: document.getElementById("edit_supervisor").value,
+    issue: document.getElementById("edit_issue").value,
+    engineer: document.getElementById("edit_engineer").value
+  };
+  
+  // 保存並重新渲染
+  save();
+  render();
+  
+  // 關閉模態框
+  closeEditLog();
+}
+
+// 顯示日誌詳細資料
+function showLogDetail(index) {
+  const log = logs[index];
+  if (!log) return;
+  
+  let materialsHtml = "";
+  if (log.materials && log.materials.length > 0) {
+    materialsHtml += "<table style='width:100%;'><thead><tr><th>材料名稱</th><th>數量</th><th>單位</th><th>用途</th></tr></thead><tbody>";
+    log.materials.forEach(material => {
+      materialsHtml += `
+        <tr>
+          <td>${material.name || ''}</td>
+          <td>${material.quantity || ''}</td>
+          <td>${material.unit || ''}</td>
+          <td>${material.purpose || ''}</td>
+        </tr>`;
+    });
+    materialsHtml += "</tbody></table>";
+  } else {
+    materialsHtml = "<p>無材料記錄</p>";
+  }
+  
+  let detailHtml = `
+    <div class="log-detail-item">
+      <div class="log-detail-label">日期:</div>
+      <div class="log-detail-value">${log.date || ''}</div>
+    </div>
+    
+    <div class="log-detail-item">
+      <div class="log-detail-label">天氣 (上午):</div>
+      <div class="log-detail-value">${log.weather_am || ''}</div>
+    </div>
+    
+    <div class="log-detail-item">
+      <div class="log-detail-label">天氣 (下午):</div>
+      <div class="log-detail-value">${log.weather_pm || ''}</div>
+    </div>
+    
+    <div class="log-detail-item">
+      <div class="log-detail-label">填表人:</div>
+      <div class="log-detail-value">${log.author || ''}</div>
+    </div>
+    
+    <div class="log-detail-item">
+      <div class="log-detail-label">施工進度:</div>
+      <div class="log-detail-value">${log.progress || ''}</div>
+    </div>
+    
+    <div class="log-detail-item">
+      <div class="log-detail-label">材料管理:</div>
+      <div class="log-detail-value">${materialsHtml}</div>
+    </div>
+    
+    <div class="log-detail-item">
+      <div class="log-detail-label">監造單位指示:</div>
+      <div class="log-detail-value">${log.supervisor || ''}</div>
+    </div>
+    
+    <div class="log-detail-item">
+      <div class="log-detail-label">異常狀況通報:</div>
+      <div class="log-detail-value">${log.issue || ''}</div>
+    </div>
+    
+    <div class="log-detail-item">
+      <div class="log-detail-label">專任工程人員督察紀錄:</div>
+      <div class="log-detail-value">${log.engineer || ''}</div>
+    </div>
+    
+    <div class="log-detail-item">
+      <div class="log-detail-label">待辦事項:</div>
+      <div class="log-detail-value"><p>【預留欄位】將來會與其他系統連動</p></div>
+    </div>
+    
+    <div class="log-detail-item">
+      <div class="log-detail-label">施工前職安檢查紀錄:</div>
+      <div class="log-detail-value"><p>【預留欄位】將來會與其他系統連動</p></div>
+    </div>
+    
+    <div class="log-detail-item">
+      <div class="log-detail-label">品質管理:</div>
+      <div class="log-detail-value"><p>【預留欄位】將來會與其他系統連動</p></div>
+    </div>
+  `;
+  
+  document.getElementById("logDetailContent").innerHTML = detailHtml;
+  document.getElementById("logDetailModal").style.display = "block";
+}
+
+// 關閉日誌詳細資料模態框
+function closeLogDetail() {
+  document.getElementById("logDetailModal").style.display = "none";
+}
+
+// 列印日誌詳細資料
+function printLogDetail() {
+  window.print();
+}
+
+// 新增材料項目
+function addMaterial() {
+  if (document.getElementById("material_name").value.trim() !== "") {
+    currentMaterials.push({
+      name: document.getElementById("material_name").value,
+      quantity: document.getElementById("material_qty").value,
+      unit: document.getElementById("material_unit").value,
+      purpose: document.getElementById("material_purpose").value
+    });
+    
+    // 清空輸入欄位
+    document.getElementById("material_name").value = "";
+    document.getElementById("material_qty").value = "";
+    document.getElementById("material_unit").value = "";
+    document.getElementById("material_purpose").value = "";
+    
+    // 更新材料列表顯示
+    renderMaterials();
+  }
+}
+
+// 渲染材料列表
+function renderMaterials() {
+  let materialsHtml = "";
+  
+  if (currentMaterials.length > 0) {
+    materialsHtml += `<table class="materials-table">
+      <thead>
+        <tr>
+          <th>材料名稱</th>
+          <th>數量</th>
+          <th>單位</th>
+          <th>用途</th>
+          <th>操作</th>
+        </tr>
+      </thead>
+      <tbody>`;
+      
+    currentMaterials.forEach((material, index) => {
+      materialsHtml += `
+        <tr>
+          <td>${material.name}</td>
+          <td>${material.quantity}</td>
+          <td>${material.unit}</td>
+          <td>${material.purpose}</td>
+          <td><button onclick="removeMaterial(${index})">移除</button></td>
+        </tr>`;
+    });
+    
+    materialsHtml += `</tbody></table>`;
+  }
+  
+  document.getElementById("materials_list").innerHTML = materialsHtml;
+}
+
+// 移除材料
+function removeMaterial(index) {
+  currentMaterials.splice(index, 1);
+  renderMaterials();
 }
 
 function addLog(){
+  let log = {
+    date: date.value,
+    weather_am: weather_am.value,
+    weather_pm: weather_pm.value,
+    author: author.value,
+    
+    // 使用新的施工進度欄位
+    progress: progress.value,
+    
+    // 儲存材料列表
+    materials: [...currentMaterials],
+    
+    supervisor: supervisor.value,
+    issue: issue.value,
+    engineer: engineer.value,
+    
+    // 以下為預留欄位，未來將連動
+    todo: "預留欄位",
+    safety: "預留欄位",
+    quality: "預留欄位"
+  };
 
-logs.push({
-date:date.value,
-content:content.value
+  logs.push(log);
+  save();
+  render();
+  clearForm();
+}
+
+function clearForm(){
+  date.value = "";
+  weather_am.value = "";
+  weather_pm.value = "";
+  author.value = "";
+  progress.value = "";
+  
+  // 清空材料列表
+  currentMaterials = [];
+  renderMaterials();
+  
+  supervisor.value = "";
+  issue.value = "";
+  engineer.value = "";
+  
+  // 清空出工紀錄顯示
+  document.getElementById("workers_table").innerHTML = "";
+  document.getElementById("workers_summary").style.display = "none";
+}
+
+function removeLog(i){
+  logs.splice(i,1);
+  save();
+  render();
+}
+
+async function generatePDF(){
+  const { jsPDF } = window.jspdf;
+  let doc = new jsPDF();
+  let y = 20;
+
+  doc.setFontSize(18);
+  doc.text("施工日誌 / 監造日報", 70, y);
+  y += 10;
+
+  doc.setFontSize(12);
+  
+  // 基本資料
+  doc.text("日期: " + date.value, 20, y); y += 8;
+  doc.text("天氣(上午): " + weather_am.value, 20, y); y += 8;
+  doc.text("天氣(下午): " + weather_pm.value, 20, y); y += 8;
+  doc.text("填表人: " + author.value, 20, y); y += 12;
+
+  // 施工進度
+  doc.text("施工進度:", 20, y); y += 8;
+  
+  // 處理長文本分行
+  const progressLines = doc.splitTextToSize(progress.value, 170);
+  doc.text(progressLines, 20, y);
+  y += progressLines.length * 6 + 12; // 根據行數增加垂直位置
+  
+  // 材料管理
+  doc.text("材料管理:", 20, y); y += 8;
+  
+  if (currentMaterials.length > 0) {
+    currentMaterials.forEach(material => {
+      doc.text(`材料: ${material.name} | 數量: ${material.quantity} | 單位: ${material.unit} | 用途: ${material.purpose}`, 20, y);
+      y += 8;
+    });
+  } else {
+    doc.text("無材料記錄", 20, y);
+    y += 8;
+  }
+  
+  y += 4; // 額外空間
+  
+  // 重要事項
+  doc.text("監造單位指示:", 20, y); y += 8;
+  const supervisorLines = doc.splitTextToSize(supervisor.value, 170);
+  doc.text(supervisorLines, 20, y);
+  y += supervisorLines.length * 6 + 12;
+
+  doc.text("異常狀況通報:", 20, y); y += 8;
+  const issueLines = doc.splitTextToSize(issue.value, 170);
+  doc.text(issueLines, 20, y);
+  y += issueLines.length * 6 + 12;
+
+  doc.text("專任工程人員督察:", 20, y); y += 8;
+  const engineerLines = doc.splitTextToSize(engineer.value, 170);
+  doc.text(engineerLines, 20, y);
+  y += engineerLines.length * 6 + 12;
+  
+  doc.text("待辦事項:", 20, y); y += 8;
+  doc.text("【預留欄位】將來會與其他系統連動", 20, y);
+  y += 12;
+
+  // 安全檢查
+  doc.text("施工前職安檢查:", 20, y); y += 8;
+  doc.text("【預留欄位】將來會與其他系統連動", 20, y);
+  y += 12;
+  
+  // 品質管理
+  doc.text("品質管理:", 20, y); y += 8;
+  doc.text("【預留欄位】將來會與其他系統連動", 20, y);
+
+  doc.save("施工日誌.pdf");
+}
+
+// 點擊模態框外關閉
+window.onclick = function(event) {
+  const modal = document.getElementById("logDetailModal");
+  const editModal = document.getElementById("editLogModal");
+  const duplicateModal = document.getElementById("duplicateDateModal");
+  
+  if (event.target == modal) {
+    closeLogDetail();
+  }
+  
+  if (event.target == editModal) {
+    closeEditLog();
+  }
+  
+  if (event.target == duplicateModal) {
+    closeDuplicateWarning();
+  }
+};
+
+// 按ESC鍵關閉模態框
+document.addEventListener('keydown', function(event) {
+  if (event.key === "Escape") {
+    closeLogDetail();
+    closeEditLog();
+    closeDuplicateWarning();
+  }
 });
 
-save();
-render();
-
-}
-
-function remove(i){
-
-logs.splice(i,1);
-save();
-render();
-
-}
-
+// 頁面載入時執行渲染
 render();
 
 </script>

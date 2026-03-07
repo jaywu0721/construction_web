@@ -16,10 +16,14 @@
 <input type="date" id="date">
 
 工種
-<input id="type">
+<input id="type" list="type-options" autocomplete="off">
+<datalist id="type-options"></datalist>
 
 人數
 <input id="count">
+
+工作內容
+<input id="content" placeholder="請輸入工作內容...">
 
 <button onclick="addWorker()">新增</button>
 
@@ -30,6 +34,7 @@
 <th>日期</th>
 <th>工種</th>
 <th>人數</th>
+<th>工作內容</th>
 <th>刪除</th>
 </tr>
 </thead>
@@ -43,51 +48,79 @@
 <script>
 
 let workers = JSON.parse(localStorage.getItem("workers")) || [];
+// 新增工種記錄陣列
+let workerTypes = JSON.parse(localStorage.getItem("workerTypes")) || [];
 
 function save(){
-localStorage.setItem("workers",JSON.stringify(workers));
+  localStorage.setItem("workers", JSON.stringify(workers));
+  localStorage.setItem("workerTypes", JSON.stringify(workerTypes));
 }
 
 function render(){
+  let html = "";
 
-let html="";
+  workers.forEach((w,i)=>{
+    html += `
+    <tr>
+      <td>${w.date || ''}</td>
+      <td>${w.type || ''}</td>
+      <td>${w.count || ''}</td>
+      <td>${w.content || ''}</td>
+      <td><button onclick="remove(${i})">刪除</button></td>
+    </tr>
+    `;
+  });
 
-workers.forEach((w,i)=>{
+  document.getElementById("list").innerHTML = html;
+  
+  // 渲染工種下拉選單
+  renderTypeOptions();
+}
 
-html+=`
-<tr>
-<td>${w.date}</td>
-<td>${w.type}</td>
-<td>${w.count}</td>
-<td><button onclick="remove(${i})">刪除</button></td>
-</tr>
-`;
-
-});
-
-document.getElementById("list").innerHTML=html;
-
+// 渲染工種選項
+function renderTypeOptions() {
+  let options = "";
+  
+  // 確保工種不重複
+  const uniqueTypes = [...new Set(workerTypes)];
+  
+  uniqueTypes.forEach(type => {
+    options += `<option value="${type}"></option>`;
+  });
+  
+  document.getElementById("type-options").innerHTML = options;
 }
 
 function addWorker(){
+  // 獲取工種值
+  const typeValue = document.getElementById("type").value.trim();
+  
+  // 如果是新的工種，則添加到工種記錄中
+  if(typeValue && !workerTypes.includes(typeValue)) {
+    workerTypes.push(typeValue);
+  }
+  
+  workers.push({
+    date: date.value,
+    type: typeValue,
+    count: count.value,
+    content: content.value // 新增工作內容
+  });
 
-workers.push({
-date:date.value,
-type:type.value,
-count:count.value
-});
-
-save();
-render();
-
+  save();
+  render();
+  
+  // 清空輸入欄位
+  date.value = "";
+  document.getElementById("type").value = "";
+  count.value = "";
+  content.value = "";
 }
 
 function remove(i){
-
-workers.splice(i,1);
-save();
-render();
-
+  workers.splice(i,1);
+  save();
+  render();
 }
 
 render();
