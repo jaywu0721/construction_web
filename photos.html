@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>工程履歷</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+
+<body>
+
+<button onclick="go('index.html')">回首頁</button>
+
+<h2>工程履歷</h2>
+
+施工位置
+<input id="location">
+
+照片
+<input type="file" id="photo">
+
+<button onclick="addPhoto()">新增</button>
+
+<div id="list"></div>
+
+<script src="js/main.js"></script>
+
+<script>
+
+let photos = JSON.parse(localStorage.getItem("photos")) || [];
+
+function save(){
+localStorage.setItem("photos",JSON.stringify(photos));
+}
+
+function render(){
+
+let html="";
+
+photos.forEach(p=>{
+
+html+=`
+<div>
+<p>${p.location}</p>
+<img src="${p.photo}">
+</div>
+`;
+
+});
+
+document.getElementById("list").innerHTML=html;
+
+}
+
+function addPhoto(){
+
+let file = photo.files[0];
+
+let reader = new FileReader();
+
+reader.onload=function(){
+
+photos.push({
+location:location.value,
+photo:reader.result
+});
+
+save();
+render();
+
+};
+
+reader.readAsDataURL(file);
+
+}
+
+render();
+
+</script>
+
+</body>
+</html>

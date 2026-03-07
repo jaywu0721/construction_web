@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>人員出工</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+
+<body>
+
+<button onclick="go('index.html')">回首頁</button>
+
+<h2>人員出工</h2>
+
+日期
+<input type="date" id="date">
+
+工種
+<input id="type">
+
+人數
+<input id="count">
+
+<button onclick="addWorker()">新增</button>
+
+<table>
+
+<thead>
+<tr>
+<th>日期</th>
+<th>工種</th>
+<th>人數</th>
+<th>刪除</th>
+</tr>
+</thead>
+
+<tbody id="list"></tbody>
+
+</table>
+
+<script src="js/main.js"></script>
+
+<script>
+
+let workers = JSON.parse(localStorage.getItem("workers")) || [];
+
+function save(){
+localStorage.setItem("workers",JSON.stringify(workers));
+}
+
+function render(){
+
+let html="";
+
+workers.forEach((w,i)=>{
+
+html+=`
+<tr>
+<td>${w.date}</td>
+<td>${w.type}</td>
+<td>${w.count}</td>
+<td><button onclick="remove(${i})">刪除</button></td>
+</tr>
+`;
+
+});
+
+document.getElementById("list").innerHTML=html;
+
+}
+
+function addWorker(){
+
+workers.push({
+date:date.value,
+type:type.value,
+count:count.value
+});
+
+save();
+render();
+
+}
+
+function remove(i){
+
+workers.splice(i,1);
+save();
+render();
+
+}
+
+render();
+
+</script>
+
+</body>
+</html>

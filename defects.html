@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>缺失管理</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+
+<body>
+
+<button onclick="go('index.html')">回首頁</button>
+
+<h2>缺失管理</h2>
+
+建案
+<input id="project">
+
+棟別
+<input id="building">
+
+樓層
+<input id="floor">
+
+工項
+<input id="item">
+
+缺失描述
+<textarea id="desc"></textarea>
+
+<button onclick="addDefect()">新增</button>
+
+<table>
+
+<thead>
+<tr>
+<th>建案</th>
+<th>棟別</th>
+<th>樓層</th>
+<th>工項</th>
+<th>描述</th>
+<th>刪除</th>
+</tr>
+</thead>
+
+<tbody id="list"></tbody>
+
+</table>
+
+<script src="js/main.js"></script>
+
+<script>
+
+let defects = JSON.parse(localStorage.getItem("defects")) || [];
+
+function save(){
+localStorage.setItem("defects",JSON.stringify(defects));
+}
+
+function render(){
+
+let html="";
+
+defects.forEach((d,i)=>{
+
+html+=`
+<tr>
+<td>${d.project}</td>
+<td>${d.building}</td>
+<td>${d.floor}</td>
+<td>${d.item}</td>
+<td>${d.desc}</td>
+<td><button onclick="remove(${i})">刪除</button></td>
+</tr>
+`;
+
+});
+
+document.getElementById("list").innerHTML=html;
+
+}
+
+function addDefect(){
+
+defects.push({
+project:project.value,
+building:building.value,
+floor:floor.value,
+item:item.value,
+desc:desc.value
+});
+
+save();
+render();
+
+}
+
+function remove(i){
+
+defects.splice(i,1);
+save();
+render();
+
+}
+
+render();
+
+</script>
+
+</body>
+</html>

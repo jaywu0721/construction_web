@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Dashboard</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+
+<body>
+
+<button onclick="go('index.html')">回首頁</button>
+
+<h2>工程系統Dashboard</h2>
+
+<table>
+
+<tr>
+<th>項目</th>
+<th>數量</th>
+</tr>
+
+<tr>
+<td>缺失紀錄</td>
+<td id="defects"></td>
+</tr>
+
+<tr>
+<td>施工日誌</td>
+<td id="logs"></td>
+</tr>
+
+<tr>
+<td>施工照片</td>
+<td id="photos"></td>
+</tr>
+
+</table>
+
+<script src="js/main.js"></script>
+
+<script>
+
+let defects = JSON.parse(localStorage.getItem("defects")) || [];
+let logs = JSON.parse(localStorage.getItem("logs")) || [];
+let photos = JSON.parse(localStorage.getItem("photos")) || [];
+
+document.getElementById("defects").innerText = defects.length;
+document.getElementById("logs").innerText = logs.length;
+document.getElementById("photos").innerText = photos.length;
+
+</script>
+
+</body>
+</html>

@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>施工日誌</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+
+<body>
+
+<button onclick="go('index.html')">回首頁</button>
+
+<h2>施工日誌</h2>
+
+日期
+<input id="date" type="date">
+
+施工內容
+<textarea id="content"></textarea>
+
+<button onclick="addLog()">新增</button>
+
+<table>
+
+<thead>
+<tr>
+<th>日期</th>
+<th>施工內容</th>
+<th>刪除</th>
+</tr>
+</thead>
+
+<tbody id="list"></tbody>
+
+</table>
+
+<script src="js/main.js"></script>
+
+<script>
+
+let logs = JSON.parse(localStorage.getItem("logs")) || [];
+
+function save(){
+localStorage.setItem("logs",JSON.stringify(logs));
+}
+
+function render(){
+
+let html="";
+
+logs.forEach((l,i)=>{
+
+html+=`
+<tr>
+<td>${l.date}</td>
+<td>${l.content}</td>
+<td><button onclick="remove(${i})">刪除</button></td>
+</tr>
+`;
+
+});
+
+document.getElementById("list").innerHTML=html;
+
+}
+
+function addLog(){
+
+logs.push({
+date:date.value,
+content:content.value
+});
+
+save();
+render();
+
+}
+
+function remove(i){
+
+logs.splice(i,1);
+save();
+render();
+
+}
+
+render();
+
+</script>
+
+</body>
+</html>
