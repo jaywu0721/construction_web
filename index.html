@@ -4,37 +4,181 @@
 <meta charset="UTF-8">
 <title>PMIS工程管理系統</title>
 <link rel="stylesheet" href="css/style.css">
+<style>
+  .hidden {
+    display: none;
+  }
+  .project-list {
+    margin: 20px 0;
+  }
+  .project-item {
+    padding: 10px;
+    margin: 5px 0;
+    border: 1px solid #ddd;
+    cursor: pointer;
+  }
+  .project-item:hover {
+    background-color: #f5f5f5;
+  }
+  .project-item.selected {
+    background-color: #e0f0ff;
+    font-weight: bold;
+  }
+  .project-form {
+    margin: 20px 0;
+  }
+  .project-form input {
+    padding: 8px;
+    width: 250px;
+    margin-right: 5px;
+  }
+  .project-form button {
+    padding: 8px 15px;
+  }
+  .current-project {
+    font-size: 18px;
+    font-weight: bold;
+    margin-bottom: 20px;
+    color: #3a7bd5;
+  }
+</style>
 </head>
 
 <body>
 
 <h1>PMIS工程管理系統</h1>
 
-<div class="menu">
-
-<div class="card" onclick="go('dashboard.html')">
-Dashboard
+<div id="project-selection">
+  <h2>請選擇建案</h2>
+  
+  <div class="project-form">
+    <input type="text" id="new-project-name" placeholder="請輸入新建案名稱...">
+    <button onclick="addProject()">新增建案</button>
+  </div>
+  
+  <div class="project-list" id="project-list">
+    <!-- 這裡會動態加入建案列表 -->
+  </div>
 </div>
 
-<div class="card" onclick="go('defects.html')">
-缺失管理
+<div id="current-project" class="hidden">
+  <div class="current-project">
+    當前建案: <span id="selected-project-name"></span>
+    <button onclick="changeProject()">切換建案</button>
+  </div>
 </div>
 
-<div class="card" onclick="go('dailylog.html')">
-施工日誌
-</div>
-
-<div class="card" onclick="go('workers.html')">
-人員出工
-</div>
-
-<div class="card" onclick="go('photos.html')">
-工程履歷
-</div>
-
+<div class="menu hidden" id="system-menu">
+  <div class="card" onclick="go('dashboard.html')">
+    Dashboard
+  </div>
+  
+  <div class="card" onclick="go('defects.html')">
+    缺失管理
+  </div>
+  
+  <div class="card" onclick="go('dailylog.html')">
+    施工日誌
+  </div>
+  
+  <div class="card" onclick="go('workers.html')">
+    人員出工
+  </div>
+  
+  <div class="card" onclick="go('photos.html')">
+    工程履歷
+  </div>
 </div>
 
 <script src="js/main.js"></script>
+
+<script>
+// 建案資料管理
+let projects = JSON.parse(localStorage.getItem("projects")) || [];
+let currentProject = localStorage.getItem("currentProject") || "";
+
+// 初始化頁面
+function initPage() {
+  renderProjectList();
+  
+  // 檢查是否有當前選擇的建案
+  if (currentProject) {
+    showSystemMenu();
+  }
+}
+
+// 渲染建案列表
+function renderProjectList() {
+  let html = "";
+  
+  if (projects.length === 0) {
+    html = "<p>目前沒有建案，請新增一個建案</p>";
+  } else {
+    projects.forEach(project => {
+      const selectedClass = project === currentProject ? "selected" : "";
+      html += `<div class="project-item ${selectedClass}" onclick="selectProject('${project}')">${project}</div>`;
+    });
+  }
+  
+  document.getElementById("project-list").innerHTML = html;
+}
+
+// 新增建案
+function addProject() {
+  const projectName = document.getElementById("new-project-name").value.trim();
+  
+  if (!projectName) {
+    alert("請輸入建案名稱");
+    return;
+  }
+  
+  // 檢查是否已存在同名建案
+  if (projects.includes(projectName)) {
+    alert("已存在相同名稱的建案");
+    return;
+  }
+  
+  // 添加新建案
+  projects.push(projectName);
+  localStorage.setItem("projects", JSON.stringify(projects));
+  
+  // 清空輸入框並更新列表
+  document.getElementById("new-project-name").value = "";
+  renderProjectList();
+}
+
+// 選擇建案
+function selectProject(projectName) {
+  currentProject = projectName;
+  localStorage.setItem("currentProject", currentProject);
+  
+  showSystemMenu();
+}
+
+// 顯示系統菜單
+function showSystemMenu() {
+  document.getElementById("project-selection").classList.add("hidden");
+  document.getElementById("current-project").classList.remove("hidden");
+  document.getElementById("system-menu").classList.remove("hidden");
+  
+  document.getElementById("selected-project-name").textContent = currentProject;
+}
+
+// 切換建案
+function changeProject() {
+  document.getElementById("project-selection").classList.remove("hidden");
+  document.getElementById("current-project").classList.add("hidden");
+  document.getElementById("system-menu").classList.add("hidden");
+}
+
+// 修改 go 函數，確保將當前建案資訊傳遞給其他頁面
+function go(page) {
+  window.location.href = page;
+}
+
+// 初始化頁面
+initPage();
+</script>
 
 </body>
 </html>

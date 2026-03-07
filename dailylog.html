@@ -285,6 +285,13 @@
   color: #333;
   border: 1px solid #ddd;
 }
+
+.current-project {
+  font-size: 18px;
+  font-weight: bold;
+  margin-bottom: 20px;
+  color: #3a7bd5;
+}
 </style>
 
 </head>
@@ -294,6 +301,11 @@
 <button onclick="go('index.html')">回首頁</button>
 
 <h2>施工日誌</h2>
+
+<!-- 顯示當前建案 -->
+<div class="current-project">
+  當前建案: <span id="current-project-name"></span>
+</div>
 
 <h3>基本資料</h3>
 
@@ -512,8 +524,13 @@
 
 <script>
 
-let logs = JSON.parse(localStorage.getItem("logs")) || [];
-let workers = JSON.parse(localStorage.getItem("workers")) || [];
+// 使用建案隔離的數據存取方式
+let logs = getProjectData("logs");
+let workers = getProjectData("workers");
+
+// 顯示當前建案名稱
+document.getElementById("current-project-name").innerText = getCurrentProject();
+
 // 新增材料列表暫存
 let currentMaterials = [];
 // 儲存當前日期的出工紀錄
@@ -528,7 +545,7 @@ let workerHelperVisible = true;
 let duplicateLogIndex = -1;
 
 function save(){
-  localStorage.setItem("logs",JSON.stringify(logs));
+  saveProjectData("logs", logs);
 }
 
 function render(){
@@ -672,6 +689,9 @@ function editDuplicateLog() {
 
 // 根據選取的日期過濾出工紀錄
 function updateWorkersByDate() {
+  // 使用 getProjectData 獲取當前建案的工人記錄
+  workers = getProjectData("workers");
+  
   let selectedDate = document.getElementById("date").value;
   
   if (!selectedDate) {
@@ -726,6 +746,9 @@ function updateWorkersByDate() {
 
 // 顯示所有出工紀錄
 function renderAllWorkers() {
+  // 使用 getProjectData 獲取當前建案的工人記錄
+  workers = getProjectData("workers");
+  
   let workers_html = "";
   
   workers.forEach(w => {
@@ -1047,6 +1070,11 @@ async function generatePDF(){
   let doc = new jsPDF();
   let y = 20;
 
+  // 添加建案名稱到PDF
+  doc.setFontSize(14);
+  doc.text("建案: " + getCurrentProject(), 20, y);
+  y += 10;
+
   doc.setFontSize(18);
   doc.text("施工日誌 / 監造日報", 70, y);
   y += 10;
@@ -1111,7 +1139,8 @@ async function generatePDF(){
   doc.text("品質管理:", 20, y); y += 8;
   doc.text("【預留欄位】將來會與其他系統連動", 20, y);
 
-  doc.save("施工日誌.pdf");
+  // 加上建案名稱作為檔案名
+  doc.save(`施工日誌_${getCurrentProject()}.pdf`);
 }
 
 // 點擊模態框外關閉

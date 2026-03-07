@@ -4,6 +4,14 @@
 <meta charset="UTF-8">
 <title>工程履歷</title>
 <link rel="stylesheet" href="css/style.css">
+<style>
+.current-project {
+  font-size: 18px;
+  font-weight: bold;
+  margin-bottom: 20px;
+  color: #3a7bd5;
+}
+</style>
 </head>
 
 <body>
@@ -11,6 +19,11 @@
 <button onclick="go('index.html')">回首頁</button>
 
 <h2>工程履歷</h2>
+
+<!-- 顯示當前建案 -->
+<div class="current-project">
+  當前建案: <span id="current-project-name"></span>
+</div>
 
 施工位置
 <input id="location">
@@ -26,51 +39,56 @@
 
 <script>
 
-let photos = JSON.parse(localStorage.getItem("photos")) || [];
+// 使用建案隔離的數據存取方式
+let photos = getProjectData("photos");
+
+// 顯示當前建案名稱
+document.getElementById("current-project-name").innerText = getCurrentProject();
 
 function save(){
-localStorage.setItem("photos",JSON.stringify(photos));
+  saveProjectData("photos", photos);
 }
 
 function render(){
+  let html="";
 
-let html="";
+  photos.forEach(p=>{
+    html+=`
+    <div>
+    <p>${p.location}</p>
+    <img src="${p.photo}">
+    </div>
+    `;
+  });
 
-photos.forEach(p=>{
-
-html+=`
-<div>
-<p>${p.location}</p>
-<img src="${p.photo}">
-</div>
-`;
-
-});
-
-document.getElementById("list").innerHTML=html;
-
+  document.getElementById("list").innerHTML=html;
 }
 
 function addPhoto(){
+  let file = photo.files[0];
+  
+  if (!file) {
+    alert("請選擇一張照片");
+    return;
+  }
 
-let file = photo.files[0];
+  let reader = new FileReader();
 
-let reader = new FileReader();
+  reader.onload=function(){
+    photos.push({
+      location:location.value,
+      photo:reader.result
+    });
 
-reader.onload=function(){
+    save();
+    render();
+    
+    // 清空輸入欄位
+    document.getElementById("location").value = "";
+    document.getElementById("photo").value = "";
+  };
 
-photos.push({
-location:location.value,
-photo:reader.result
-});
-
-save();
-render();
-
-};
-
-reader.readAsDataURL(file);
-
+  reader.readAsDataURL(file);
 }
 
 render();

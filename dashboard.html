@@ -12,6 +12,11 @@
 
 <h2>工程系統Dashboard</h2>
 
+<!-- 顯示當前建案 -->
+<div class="current-project">
+  當前建案: <span id="current-project-name"></span>
+</div>
+
 <table>
 
 <tr>
@@ -40,9 +45,13 @@
 
 <script>
 
-let defects = JSON.parse(localStorage.getItem("defects")) || [];
-let logs = JSON.parse(localStorage.getItem("logs")) || [];
-let photos = JSON.parse(localStorage.getItem("photos")) || [];
+// 顯示當前建案名稱
+document.getElementById("current-project-name").innerText = getCurrentProject();
+
+// 使用建案隔離的數據讀取方式
+let defects = getProjectData("defects");
+let logs = getProjectData("logs");
+let photos = getProjectData("photos");
 
 document.getElementById("defects").innerText = defects.length;
 document.getElementById("logs").innerText = logs.length;

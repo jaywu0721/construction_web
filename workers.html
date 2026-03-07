@@ -11,6 +11,10 @@
 <button onclick="go('index.html')">回首頁</button>
 
 <h2>人員出工</h2>
+<!-- 顯示當前建案 -->
+<div class="current-project">
+  當前建案: <span id="current-project-name"></span>
+</div>
 
 日期
 <input type="date" id="date">
@@ -26,6 +30,12 @@
 <input id="content" placeholder="請輸入工作內容...">
 
 <button onclick="addWorker()">新增</button>
+
+<div style="margin-top: 20px; margin-bottom: 10px;">
+  <button onclick="filterRecords('all')">全部</button>
+  <button onclick="filterRecords('today')">今日</button>
+  <button onclick="filterRecords('14days')">14日</button>
+</div>
 
 <table>
 
@@ -46,27 +56,41 @@
 <script src="js/main.js"></script>
 
 <script>
+// 使用建案隔離的數據存取方式
+let workers = getProjectData("workers");
+let workerTypes = getProjectData("workerTypes");
+let currentFilter = 'all';
 
-let workers = JSON.parse(localStorage.getItem("workers")) || [];
-// 新增工種記錄陣列
-let workerTypes = JSON.parse(localStorage.getItem("workerTypes")) || [];
+// 顯示當前建案名稱
+document.getElementById("current-project-name").innerText = getCurrentProject();
 
 function save(){
-  localStorage.setItem("workers", JSON.stringify(workers));
-  localStorage.setItem("workerTypes", JSON.stringify(workerTypes));
+  saveProjectData("workers", workers);
+  saveProjectData("workerTypes", workerTypes);
 }
 
 function render(){
   let html = "";
+  
+  // 獲取篩選後的記錄
+  const filteredWorkers = getFilteredWorkers();
 
-  workers.forEach((w,i)=>{
+  filteredWorkers.forEach((w,i)=>{
+    // 使用原始索引，確保刪除功能正確
+    const originalIndex = workers.findIndex(worker => 
+      worker.date === w.date && 
+      worker.type === w.type && 
+      worker.count === w.count && 
+      worker.content === w.content
+    );
+    
     html += `
     <tr>
       <td>${w.date || ''}</td>
       <td>${w.type || ''}</td>
       <td>${w.count || ''}</td>
       <td>${w.content || ''}</td>
-      <td><button onclick="remove(${i})">刪除</button></td>
+      <td><button onclick="remove(${originalIndex})">刪除</button></td>
     </tr>
     `;
   });
@@ -75,6 +99,43 @@ function render(){
   
   // 渲染工種下拉選單
   renderTypeOptions();
+}
+
+// 篩選記錄
+function filterRecords(filter) {
+  currentFilter = filter;
+  render();
+}
+
+// 獲取篩選後的記錄
+function getFilteredWorkers() {
+  if (currentFilter === 'all') {
+    return [...workers];
+  }
+  
+  // 獲取今天的日期字符串（YYYY-MM-DD格式）
+  const today = new Date();
+  const todayString = today.getFullYear() + '-' + 
+                      String(today.getMonth() + 1).padStart(2, '0') + '-' + 
+                      String(today.getDate()).padStart(2, '0');
+  
+  if (currentFilter === 'today') {
+    return workers.filter(worker => worker.date === todayString);
+  } else if (currentFilter === '14days') {
+    // 計算14天前的日期
+    const fourteenDaysAgo = new Date();
+    fourteenDaysAgo.setDate(today.getDate() - 13); // 14天包含今天
+    
+    return workers.filter(worker => {
+      if (!worker.date) return false;
+      
+      // 將工人的日期字符串轉換為日期對象進行比較
+      const workerDate = new Date(worker.date + 'T00:00:00'); // 添加時間部分以確保一致性
+      return workerDate >= fourteenDaysAgo && workerDate <= today;
+    });
+  }
+  
+  return [...workers];
 }
 
 // 渲染工種選項

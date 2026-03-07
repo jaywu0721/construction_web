@@ -4,6 +4,14 @@
 <meta charset="UTF-8">
 <title>缺失管理</title>
 <link rel="stylesheet" href="css/style.css">
+<style>
+.current-project {
+  font-size: 18px;
+  font-weight: bold;
+  margin-bottom: 20px;
+  color: #3a7bd5;
+}
+</style>
 </head>
 
 <body>
@@ -12,8 +20,13 @@
 
 <h2>缺失管理</h2>
 
+<!-- 顯示當前建案 -->
+<div class="current-project">
+  當前建案: <span id="current-project-name"></span>
+</div>
+
 建案
-<input id="project">
+<input id="project" disabled>
 
 棟別
 <input id="building">
@@ -50,56 +63,60 @@
 
 <script>
 
-let defects = JSON.parse(localStorage.getItem("defects")) || [];
+// 使用建案隔離的數據存取方式
+let defects = getProjectData("defects");
+
+// 顯示當前建案名稱
+const currentProjectName = getCurrentProject();
+document.getElementById("current-project-name").innerText = currentProjectName;
+document.getElementById("project").value = currentProjectName;
 
 function save(){
-localStorage.setItem("defects",JSON.stringify(defects));
+  saveProjectData("defects", defects);
 }
 
 function render(){
+  let html="";
 
-let html="";
+  defects.forEach((d,i)=>{
+    html+=`
+    <tr>
+    <td>${d.project}</td>
+    <td>${d.building}</td>
+    <td>${d.floor}</td>
+    <td>${d.item}</td>
+    <td>${d.desc}</td>
+    <td><button onclick="remove(${i})">刪除</button></td>
+    </tr>
+    `;
+  });
 
-defects.forEach((d,i)=>{
-
-html+=`
-<tr>
-<td>${d.project}</td>
-<td>${d.building}</td>
-<td>${d.floor}</td>
-<td>${d.item}</td>
-<td>${d.desc}</td>
-<td><button onclick="remove(${i})">刪除</button></td>
-</tr>
-`;
-
-});
-
-document.getElementById("list").innerHTML=html;
-
+  document.getElementById("list").innerHTML=html;
 }
 
 function addDefect(){
+  defects.push({
+    project: currentProjectName,
+    building: building.value,
+    floor: floor.value,
+    item: item.value,
+    desc: desc.value
+  });
 
-defects.push({
-project:project.value,
-building:building.value,
-floor:floor.value,
-item:item.value,
-desc:desc.value
-});
-
-save();
-render();
-
+  save();
+  render();
+  
+  // 清空輸入欄位，但保留建案名稱
+  building.value = "";
+  floor.value = "";
+  item.value = "";
+  desc.value = "";
 }
 
 function remove(i){
-
-defects.splice(i,1);
-save();
-render();
-
+  defects.splice(i,1);
+  save();
+  render();
 }
 
 render();
