@@ -1,5 +1,5 @@
 // 定義快取版本和名稱
-const CACHE_NAME = 'pmis-cache-v1';
+const CACHE_NAME = 'pmis-cache-v2'; // 增加版本號強制更新
 
 // 需要離線快取的資源
 const urlsToCache = [
@@ -17,6 +17,9 @@ const urlsToCache = [
 
 // 安裝 Service Worker
 self.addEventListener('install', event => {
+  // 立即激活新版本
+  self.skipWaiting();
+  
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then(cache => {
@@ -26,10 +29,23 @@ self.addEventListener('install', event => {
   );
 });
 
+// 檢查請求是否可緩存的輔助函數
+function isRequestCacheable(request) {
+  try {
+    const url = new URL(request.url);
+    return (url.protocol === 'http:' || url.protocol === 'https:') && 
+           !request.url.includes('firestore.googleapis.com');
+  } catch (error) {
+    console.error('檢查請求協議時出錯:', error);
+    return false;
+  }
+}
+
 // 攔截網路請求
 self.addEventListener('fetch', event => {
-  // 對於 Firebase API 請求，我們不進行緩存
-  if (event.request.url.includes('firestore.googleapis.com')) {
+  // 檢查請求URL是否可緩存
+  if (!isRequestCacheable(event.request)) {
+    // 對於無法緩存的請求，直接返回不處理
     return;
   }
   
@@ -42,22 +58,36 @@ self.addEventListener('fetch', event => {
         }
         
         // 否則發出網路請求
-        return fetch(event.request)
+        return fetch(event.request.clone())
           .then(networkResponse => {
             // 如果請求失敗，直接返回失敗
             if (!networkResponse || networkResponse.status !== 200 || networkResponse.type !== 'basic') {
               return networkResponse;
             }
             
-            // 將網路響應複製一份，存入快取
-            const responseToCache = networkResponse.clone();
-            
-            caches.open(CACHE_NAME)
-              .then(cache => {
-                cache.put(event.request, responseToCache);
-              });
+            // 再次檢查請求協議，確保只緩存 http/https 請求
+            if (isRequestCacheable(event.request)) {
+              const responseToCache = networkResponse.clone();
+              
+              caches.open(CACHE_NAME)
+                .then(cache => {
+                  try {
+                    cache.put(event.request, responseToCache);
+                  } catch (error) {
+                    console.error('緩存請求時出錯:', error);
+                  }
+                })
+                .catch(error => {
+                  console.error('開啟緩存時出錯:', error);
+                });
+            }
               
             return networkResponse;
+          })
+          .catch(error => {
+            console.error('獲取請求時出錯:', error);
+            // 可以在這裡返回自定義的離線頁面
+            return new Response('網絡請求失敗，請檢查網絡連接');
           });
       })
   );
@@ -65,6 +95,9 @@ self.addEventListener('fetch', event => {
 
 // 激活 Service Worker，清理舊緩存
 self.addEventListener('activate', event => {
+  // 立即接管頁面
+  clients.claim();
+  
   const cacheWhitelist = [CACHE_NAME];
   
   event.waitUntil(

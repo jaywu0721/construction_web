@@ -1,89 +1,442 @@
 <!DOCTYPE html>
 <html>
-  <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Welcome to Firebase Hosting</title>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>PMIS工程管理系統</title>
+<!-- PWA 相關標籤 -->
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#2d7ff9">
+<link rel="apple-touch-icon" href="images/icon-192x192.png">
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+<!-- 引入 Firebase 配置 -->
+<script src="js/firebase-config.js"></script>
+<link rel="stylesheet" href="css/style.css">
+<style>
+  body {
+    font-size: 16px;
+    margin: 15px;
+    padding: 0;
+    max-width: 100%;
+    overflow-x: hidden;
+  }
+  
+  h1 {
+    text-align: center;
+    font-size: 24px;
+    margin: 15px 0;
+  }
+  
+  h2 {
+    font-size: 20px;
+    margin: 15px 0;
+  }
+  
+  .hidden {
+    display: none;
+  }
+  
+  .project-list {
+    margin: 20px 0;
+  }
+  
+  .project-item {
+    padding: 15px;
+    margin: 10px 0;
+    border: 1px solid #ddd;
+    cursor: pointer;
+    border-radius: 8px;
+    font-size: 18px;
+  }
+  
+  .project-item:hover,
+  .project-item:active {
+    background-color: #f5f5f5;
+  }
+  
+  .project-item.selected {
+    background-color: #e0f0ff;
+    font-weight: bold;
+  }
+  
+  .project-form {
+    margin: 20px 0;
+    display: flex;
+    flex-direction: column;
+  }
+  
+  .project-form input {
+    padding: 15px;
+    width: 100%;
+    margin-bottom: 10px;
+    border-radius: 8px;
+    border: 1px solid #ddd;
+    font-size: 16px;
+  }
+  
+  .project-form button {
+    padding: 15px;
+    border-radius: 8px;
+    background: #2d7ff9;
+    color: white;
+    border: none;
+    font-size: 16px;
+    font-weight: bold;
+  }
+  
+  .current-project {
+    font-size: 18px;
+    font-weight: bold;
+    margin: 15px 0 20px 0;
+    color: #3a7bd5;
+    display: flex;
+    flex-direction: column;
+  }
+  
+  .current-project button {
+    margin-top: 10px;
+    padding: 12px 15px;
+    background: #2d7ff9;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 16px;
+  }
+  
+  .menu {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 15px;
+    margin-top: 20px;
+  }
+  
+  .card {
+    background: white;
+    padding: 25px;
+    border-radius: 10px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    cursor: pointer;
+    text-align: center;
+    font-size: 20px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 70px;
+  }
+  
+  .card:hover,
+  .card:active {
+    background: #eaf3ff;
+  }
+  
+  /* 加載指示器 */
+  .loading {
+    text-align: center;
+    margin: 20px 0;
+    font-size: 18px;
+  }
+  
+  .spinner {
+    border: 4px solid rgba(0, 0, 0, 0.1);
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border-left-color: #2d7ff9;
+    animation: spin 1s linear infinite;
+    display: inline-block;
+    margin-bottom: 10px;
+  }
+  
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+  
+  /* 離線狀態提示 */
+  .offline-alert {
+    background-color: #ffeb3b;
+    color: #333;
+    text-align: center;
+    padding: 10px;
+    margin-bottom: 15px;
+    border-radius: 5px;
+    font-weight: bold;
+    display: none;
+  }
 
-    <!-- update the version number as needed -->
-    <script defer src="/__/firebase/12.10.0/firebase-app-compat.js"></script>
-    <!-- include only the Firebase features as you need -->
-    <script defer src="/__/firebase/12.10.0/firebase-auth-compat.js"></script>
-    <script defer src="/__/firebase/12.10.0/firebase-database-compat.js"></script>
-    <script defer src="/__/firebase/12.10.0/firebase-firestore-compat.js"></script>
-    <script defer src="/__/firebase/12.10.0/firebase-functions-compat.js"></script>
-    <script defer src="/__/firebase/12.10.0/firebase-messaging-compat.js"></script>
-    <script defer src="/__/firebase/12.10.0/firebase-storage-compat.js"></script>
-    <script defer src="/__/firebase/12.10.0/firebase-analytics-compat.js"></script>
-    <script defer src="/__/firebase/12.10.0/firebase-remote-config-compat.js"></script>
-    <script defer src="/__/firebase/12.10.0/firebase-performance-compat.js"></script>
-    <!-- 
-      initialize the SDK after all desired features are loaded, set useEmulator to false
-      to avoid connecting the SDK to running emulators.
-    -->
-    <script defer src="/__/firebase/init.js?useEmulator=true"></script>
+  .offline-alert.visible {
+    display: block;
+  }
+  
+  /* 大屏幕設備顯示多列 */
+  @media (min-width: 768px) {
+    body {
+      margin: 40px;
+      font-size: 16px;
+    }
+    
+    h1 {
+      font-size: 28px;
+    }
+    
+    .menu {
+      grid-template-columns: repeat(3, 1fr);
+    }
+    
+    .project-form {
+      flex-direction: row;
+      align-items: center;
+    }
+    
+    .project-form input {
+      flex: 1;
+      margin-right: 10px;
+      margin-bottom: 0;
+    }
+    
+    .current-project {
+      flex-direction: row;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    .current-project button {
+      margin-top: 0;
+    }
+  }
+</style>
+</head>
 
-    <style media="screen">
-      body { background: #ECEFF1; color: rgba(0,0,0,0.87); font-family: Roboto, Helvetica, Arial, sans-serif; margin: 0; padding: 0; }
-      #message { background: white; max-width: 360px; margin: 100px auto 16px; padding: 32px 24px; border-radius: 3px; }
-      #message h2 { color: #ffa100; font-weight: bold; font-size: 16px; margin: 0 0 8px; }
-      #message h1 { font-size: 22px; font-weight: 300; color: rgba(0,0,0,0.6); margin: 0 0 16px;}
-      #message p { line-height: 140%; margin: 16px 0 24px; font-size: 14px; }
-      #message a { display: block; text-align: center; background: #039be5; text-transform: uppercase; text-decoration: none; color: white; padding: 16px; border-radius: 4px; }
-      #message, #message a { box-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24); }
-      #load { color: rgba(0,0,0,0.4); text-align: center; font-size: 13px; }
-      @media (max-width: 600px) {
-        body, #message { margin-top: 0; background: white; box-shadow: none; }
-        body { border-top: 16px solid #ffa100; }
-      }
-    </style>
-  </head>
-  <body>
-    <div id="message">
-      <h2>Welcome</h2>
-      <h1>Firebase Hosting Setup Complete</h1>
-      <p>You're seeing this because you've successfully setup Firebase Hosting. Now it's time to go build something extraordinary!</p>
-      <a target="_blank" href="https://firebase.google.com/docs/hosting/">Open Hosting Documentation</a>
+<body>
+
+<h1>PMIS工程管理系統</h1>
+
+<!-- 離線狀態提示 -->
+<div id="offline-alert" class="offline-alert">
+  您目前處於離線狀態，部分功能可能無法使用
+</div>
+
+<div id="loading" class="loading">
+  <div class="spinner"></div>
+  <div>資料載入中...</div>
+</div>
+
+<div id="content" class="hidden">
+  <div id="project-selection">
+    <h2>請選擇建案</h2>
+    
+    <div class="project-form">
+      <input type="text" id="new-project-name" placeholder="請輸入新建案名稱...">
+      <button onclick="addProject()">新增建案</button>
     </div>
-    <p id="load">Firebase SDK Loading&hellip;</p>
+    
+    <div class="project-list" id="project-list">
+      <!-- 這裡會動態加入建案列表 -->
+    </div>
+  </div>
 
-    <script>
-      document.addEventListener('DOMContentLoaded', function() {
-        const loadEl = document.querySelector('#load');
-        // // 🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥
-        // // The Firebase SDK is initialized and available here!
-        //
-        // firebase.auth().onAuthStateChanged(user => { });
-        // firebase.database().ref('/path/to/ref').on('value', snapshot => { });
-        // firebase.firestore().doc('/foo/bar').get().then(() => { });
-        // firebase.functions().httpsCallable('yourFunction')().then(() => { });
-        // firebase.messaging().requestPermission().then(() => { });
-        // firebase.storage().ref('/path/to/ref').getDownloadURL().then(() => { });
-        // firebase.analytics(); // call to activate
-        // firebase.analytics().logEvent('tutorial_completed');
-        // firebase.performance(); // call to activate
-        //
-        // // 🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥
+  <div id="current-project" class="hidden">
+    <div class="current-project">
+      <span>當前建案: <span id="selected-project-name"></span></span>
+      <button onclick="changeProject()">切換建案</button>
+    </div>
+  </div>
 
-        try {
-          let app = firebase.app();
-          let features = [
-            'auth', 
-            'database', 
-            'firestore',
-            'functions',
-            'messaging', 
-            'storage', 
-            'analytics', 
-            'remoteConfig',
-            'performance',
-          ].filter(feature => typeof app[feature] === 'function');
-          loadEl.textContent = `Firebase SDK loaded with ${features.join(', ')}`;
-        } catch (e) {
-          console.error(e);
-          loadEl.textContent = 'Error loading the Firebase SDK, check the console.';
-        }
+  <div class="menu hidden" id="system-menu">
+    <div class="card" onclick="go('dashboard.html')">
+      Dashboard
+    </div>
+    
+    <div class="card" onclick="go('defects.html')">
+      缺失管理
+    </div>
+    
+    <div class="card" onclick="go('dailylog.html')">
+      施工日誌
+    </div>
+    
+    <div class="card" onclick="go('workers.html')">
+      人員出工
+    </div>
+    
+    <div class="card" onclick="go('photos.html')">
+      工程履歷
+    </div>
+  </div>
+</div>
+
+<script src="js/main.js"></script>
+
+<script>
+// 建案資料管理 (使用Firebase)
+let projects = [];
+let currentProject = "";
+
+// 監聽網絡狀態
+function monitorNetworkStatus() {
+  const offlineAlert = document.getElementById('offline-alert');
+  
+  // 當網絡狀態變化時
+  window.addEventListener('online', function() {
+    offlineAlert.classList.remove('visible');
+  });
+  
+  window.addEventListener('offline', function() {
+    offlineAlert.classList.add('visible');
+  });
+  
+  // 初始檢查
+  if (!navigator.onLine) {
+    offlineAlert.classList.add('visible');
+  }
+}
+
+// 初始化頁面 - 從Firebase加載資料
+async function initPage() {
+  try {
+    // 從Firebase讀取建案資料
+    projects = await getProjectsFromFirebase();
+    currentProject = await getCurrentProjectFromFirebase();
+    
+    // 隱藏加載指示器，顯示內容
+    document.getElementById("loading").classList.add("hidden");
+    document.getElementById("content").classList.remove("hidden");
+    
+    // 渲染建案列表
+    renderProjectList();
+    
+    // 檢查是否有當前選擇的建案
+    if (currentProject) {
+      showSystemMenu();
+    }
+  } catch (error) {
+    console.error('初始化頁面失敗:', error);
+    
+    // 如果是因為離線導致的錯誤，嘗試從localStorage讀取
+    if (!navigator.onLine) {
+      projects = JSON.parse(localStorage.getItem("projects")) || [];
+      currentProject = localStorage.getItem("currentProject") || "";
+      
+      document.getElementById("loading").classList.add("hidden");
+      document.getElementById("content").classList.remove("hidden");
+      
+      renderProjectList();
+      
+      if (currentProject) {
+        showSystemMenu();
+      }
+    } else {
+      alert('載入資料時發生錯誤。請重新整理頁面再試一次。');
+    }
+  }
+}
+
+// 渲染建案列表
+function renderProjectList() {
+  let html = "";
+  
+  if (projects.length === 0) {
+    html = "<p>目前沒有建案，請新增一個建案</p>";
+  } else {
+    projects.forEach(project => {
+      const selectedClass = project === currentProject ? "selected" : "";
+      html += `<div class="project-item ${selectedClass}" onclick="selectProject('${project}')">${project}</div>`;
+    });
+  }
+  
+  document.getElementById("project-list").innerHTML = html;
+}
+
+// 新增建案
+async function addProject() {
+  const projectName = document.getElementById("new-project-name").value.trim();
+  
+  if (!projectName) {
+    alert("請輸入建案名稱");
+    return;
+  }
+  
+  // 檢查是否已存在同名建案
+  if (projects.includes(projectName)) {
+    alert("已存在相同名稱的建案");
+    return;
+  }
+  
+  // 添加新建案
+  projects.push(projectName);
+  
+  // 儲存到Firebase
+  const success = await saveProjectsToFirebase(projects, currentProject);
+  if (!success && navigator.onLine) {
+    alert('儲存建案時發生錯誤。請確保您的網路連接正常。');
+    // 移除剛剛添加的建案
+    projects.pop();
+    return;
+  }
+  
+  // 無論是否成功儲存到Firebase，都先更新本地畫面
+  document.getElementById("new-project-name").value = "";
+  renderProjectList();
+}
+
+// 選擇建案
+async function selectProject(projectName) {
+  currentProject = projectName;
+  
+  // 儲存到Firebase
+  const success = await saveProjectsToFirebase(projects, currentProject);
+  if (!success && navigator.onLine) {
+    alert('保存當前建案時發生錯誤。請確保您的網路連接正常。');
+    return;
+  }
+  
+  showSystemMenu();
+}
+
+// 顯示系統菜單
+function showSystemMenu() {
+  document.getElementById("project-selection").classList.add("hidden");
+  document.getElementById("current-project").classList.remove("hidden");
+  document.getElementById("system-menu").classList.remove("hidden");
+  
+  document.getElementById("selected-project-name").textContent = currentProject;
+}
+
+// 切換建案
+function changeProject() {
+  document.getElementById("project-selection").classList.remove("hidden");
+  document.getElementById("current-project").classList.add("hidden");
+  document.getElementById("system-menu").classList.add("hidden");
+}
+
+// 修改 go 函數，確保將當前建案資訊傳遞給其他頁面
+function go(page) {
+  window.location.href = page;
+}
+
+// 初始化網絡監控
+monitorNetworkStatus();
+
+// 初始化頁面
+initPage();
+</script>
+
+<!-- 註冊 Service Worker -->
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js')
+      .then(registration => {
+        console.log('ServiceWorker 註冊成功:', registration.scope);
+      })
+      .catch(error => {
+        console.log('ServiceWorker 註冊失敗:', error);
       });
-    </script>
-  </body>
+  });
+}
+</script>
+
+</body>
 </html>
