@@ -55,59 +55,17 @@
   .edit-form button {
     margin-right: 5px;
   }
-  #debug-panel {
-    margin-top: 20px;
-    padding: 10px;
-    background-color: #f0f0f0;
-    border: 1px solid #ddd;
-    border-radius: 5px;
-  }
-  #debug-panel pre {
-    max-height: 150px;
-    overflow: auto;
-    background-color: #fff;
-    padding: 5px;
-    border: 1px solid #ccc;
-  }
-  .loading-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-color: rgba(0, 0, 0, 0.5);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    z-index: 1000;
-  }
-  .loading-spinner {
-    width: 50px;
-    height: 50px;
-    border: 5px solid #f3f3f3;
-    border-top: 5px solid #3498db;
-    border-radius: 50%;
-    animation: spin 1s linear infinite;
-  }
-  @keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
-  }
 </style>
 </head>
 
 <body>
-<!-- 加載中遮罩 -->
-<div id="loading-overlay" class="loading-overlay">
-  <div class="loading-spinner"></div>
-</div>
 
-<button onclick="goHome()">回首頁</button>
+<button onclick="go('index.html')">回首頁</button>
 
 <h2>人員出工</h2>
 <!-- 顯示當前建案 -->
 <div class="current-project">
-  當前建案: <span id="current-project-name">載入中...</span>
+  當前建案: <span id="current-project-name"></span>
 </div>
 
 <div class="container">
@@ -116,8 +74,10 @@
     <input type="date" id="date">
 
     工項
+    <!-- 將input改為select，限制只能選擇，不能自由輸入 -->
     <select id="type">
       <option value="" disabled selected>請選擇工項</option>
+      <!-- 選項將由JavaScript動態生成 -->
     </select>
 
     人數
@@ -126,7 +86,7 @@
     工作內容
     <input id="content" placeholder="請輸入工作內容...">
 
-    <button onclick="addWorkerAsync()">新增</button>
+    <button onclick="addWorker()">新增</button>
 
     <div style="margin-top: 20px; margin-bottom: 10px;">
       <button onclick="filterRecords('all')">全部</button>
@@ -146,18 +106,6 @@
       </thead>
       <tbody id="list"></tbody>
     </table>
-    
-    <!-- 調試面板 -->
-    <div id="debug-panel">
-      <h3>連接狀態</h3>
-      <div id="connection-status">檢查中...</div>
-      <button onclick="testDatabaseConnection()">測試資料庫連接</button>
-      <button onclick="testFirebaseDirect()">直接測試 Firebase 連接</button>
-      <button onclick="resetDataAsync()">重置數據</button>
-      <button onclick="forceFirebaseSync()">強制同步 Firebase</button>
-      <h3>調試信息</h3>
-      <pre id="debug-info"></pre>
-    </div>
   </div>
 
   <div class="sidebar">
@@ -170,7 +118,7 @@
       公司名稱
       <input id="company-name" placeholder="輸入公司名稱">
       
-      <button onclick="addItemCompanyAsync()">新增工項與公司</button>
+      <button onclick="addItemCompany()">新增工項與公司</button>
     </div>
     
     <div id="item-company-list" style="margin-top: 20px;">
@@ -179,528 +127,41 @@
   </div>
 </div>
 
-<!-- Firebase SDK 引入 (使用兼容模式，適合當前代碼) -->
-<script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore-compat.js"></script>
-
-<!-- 引入 Firebase 配置檔案 -->
-<script src="js/firebase-config.js"></script>
-
-<!-- 引入主要JS檔案 -->
 <script src="js/main.js"></script>
 
 <script>
-// 定義全局變量，強制初始化為空數組
-let workers = [];
-let workerTypes = [];
-let itemCompanyData = [];
+// 使用建案隔離的數據存取方式
+let workers = getProjectData("workers");
+let workerTypes = getProjectData("workerTypes");
+// 新增工項和公司關聯數據
+let itemCompanyData = getProjectData("itemCompanyData") || [];
 let currentFilter = 'all';
+// 記錄當前正在編輯的工項索引
 let currentEditIndex = -1;
 
-// 調試日誌
-function log(message, data) {
-  console.log(message, data);
-  const debugInfo = document.getElementById('debug-info');
-  const timestamp = new Date().toLocaleTimeString();
-  let dataStr = '';
-  
-  try {
-    if (data !== undefined) {
-      if (typeof data === 'object') {
-        dataStr = JSON.stringify(data, null, 2);
-      } else {
-        dataStr = String(data);
-      }
-    }
-  } catch (e) {
-    dataStr = '[無法顯示數據]';
-  }
-  
-  const logMessage = `[${timestamp}] ${message}${dataStr ? '\n' + dataStr : ''}`;
-  debugInfo.textContent = logMessage + '\n\n' + debugInfo.textContent;
+// 顯示當前建案名稱
+document.getElementById("current-project-name").innerText = getCurrentProject();
+
+function save(){
+  saveProjectData("workers", workers);
+  saveProjectData("workerTypes", workerTypes);
+  saveProjectData("itemCompanyData", itemCompanyData);
 }
 
-// 顯示/隱藏加載遮罩
-function toggleLoading(show) {
-  document.getElementById('loading-overlay').style.display = show ? 'flex' : 'none';
-}
-
-// 回首頁（異步安全版本）
-async function goHome() {
-  try {
-    await saveDataIfNeeded();
-    go('index.html');
-  } catch (error) {
-    log('返回首頁時出錯:', error);
-    go('index.html'); // 即使出錯也返回首頁
-  }
-}
-
-// 如果有未保存的更改，保存數據
-async function saveDataIfNeeded() {
-  // 這裡可以添加檢查是否有未保存的更改的邏輯
-  // 目前簡單地調用 save()
-  await saveAsync();
-}
-
-// 重置所有數據為安全的默認值
-function resetAllData() {
-  log('重置所有數據為默認值');
-  workers = [];
-  workerTypes = [];
-  itemCompanyData = [];
-}
-
-// 直接測試 Firebase 連接
-async function testFirebaseDirect() {
-  log('直接測試 Firebase 連接...');
-  toggleLoading(true);
-  
-  try {
-    if (typeof firebase === 'undefined' || !firebase.apps.length) {
-      log('錯誤: Firebase 未初始化');
-      document.getElementById('connection-status').innerHTML = 
-        '<span style="color: red;">錯誤: Firebase 未初始化</span>';
-      toggleLoading(false);
-      return;
-    }
-    
-    const db = firebase.firestore();
-    
-    // 嘗試寫入測試數據
-    await db.collection("_test").doc("connection").set({
-      page: 'workers.html',
-      timestamp: firebase.firestore.FieldValue.serverTimestamp()
-    });
-    
-    log('測試數據已寫入 Firebase');
-    
-    // 嘗試讀取測試數據
-    const doc = await db.collection("_test").doc("connection").get();
-    
-    if (doc.exists) {
-      log('成功讀取測試數據:', doc.data());
-      document.getElementById('connection-status').innerHTML = 
-        '<span style="color: green;">Firebase 連接正常工作</span>';
-    } else {
-      log('測試數據不存在');
-      document.getElementById('connection-status').innerHTML = 
-        '<span style="color: orange;">Firebase 連接可能有問題</span>';
-    }
-  } catch (error) {
-    log('Firebase 直接測試出錯:', error);
-    document.getElementById('connection-status').innerHTML = 
-      `<span style="color: red;">Firebase 連接錯誤: ${error.message}</span>`;
-  } finally {
-    toggleLoading(false);
-  }
-}
-
-// 測試資料庫連接
-async function testDatabaseConnection() {
-  log('測試資料庫連接...');
-  toggleLoading(true);
-  
-  try {
-    // 1. 檢查 Firebase 是否已初始化
-    if (typeof firebase === 'undefined' || !firebase.apps.length) {
-      document.getElementById('connection-status').innerHTML = 
-        '<span style="color: red;">錯誤: Firebase 未初始化</span>';
-      log('錯誤: Firebase 未初始化');
-      toggleLoading(false);
-      return;
-    }
-    
-    // 2. 檢查 main.js 是否載入
-    if (typeof getProjectData !== 'function') {
-      document.getElementById('connection-status').innerHTML = 
-        '<span style="color: red;">錯誤: main.js 未正確載入</span>';
-      log('錯誤: getProjectData 函數未定義，main.js 可能未正確載入');
-      toggleLoading(false);
-      return;
-    }
-    
-    // 3. 檢查 firebase-config.js 函數是否可用
-    if (typeof window.getProjectDataFromFirebase !== 'function') {
-      document.getElementById('connection-status').innerHTML = 
-        '<span style="color: red;">錯誤: firebase-config.js 中的函數未正確導出</span>';
-      log('錯誤: getProjectDataFromFirebase 函數未定義，firebase-config.js 可能未正確載入或函數未導出');
-      toggleLoading(false);
-      return;
-    }
-    
-    // 4. 檢查當前項目
-    const currentProject = await getCurrentProject();
-    log('當前項目:', currentProject);
-    
-    if (!currentProject) {
-      document.getElementById('connection-status').innerHTML = 
-        '<span style="color: red;">錯誤: 未設置當前項目</span>';
-      log('錯誤: 當前項目為空');
-      toggleLoading(false);
-      return;
-    }
-    
-    // 5. 嘗試獲取數據
-    try {
-      // 先嘗試獲取簡單的測試數據
-      log('嘗試保存測試數據...');
-      await saveProjectData('_test_connection', {timestamp: Date.now()});
-      
-      log('嘗試讀取測試數據...');
-      const testData = await getProjectData('_test_connection');
-      log('測試數據獲取結果:', testData);
-      
-      if (testData && testData.timestamp) {
-        document.getElementById('connection-status').innerHTML = 
-          '<span style="color: green;">資料庫連接正常</span>';
-        
-        // 繼續測試實際數據
-        await testActualData();
-      } else {
-        document.getElementById('connection-status').innerHTML = 
-          '<span style="color: orange;">警告: 連接成功但數據不完整</span>';
-        toggleLoading(false);
-      }
-    } catch (error) {
-      document.getElementById('connection-status').innerHTML = 
-        `<span style="color: red;">連接錯誤: ${error.message}</span>`;
-      log('連接測試錯誤:', error);
-      toggleLoading(false);
-    }
-  } catch (error) {
-    document.getElementById('connection-status').innerHTML = 
-      `<span style="color: red;">測試過程錯誤: ${error.message}</span>`;
-    log('測試過程中發生錯誤:', error);
-    toggleLoading(false);
-  }
-}
-
-// 測試實際使用的數據
-async function testActualData() {
-  log('測試實際數據...');
-  
-  try {
-    // 測試 workers 數據
-    const workersData = await getProjectData('workers');
-    log('獲取 workers 原始數據:', workersData);
-    log('workers 類型:', typeof workersData);
-    log('workers 是否為數組:', Array.isArray(workersData));
-    
-    // 測試 workerTypes 數據
-    const workerTypesData = await getProjectData('workerTypes');
-    log('獲取 workerTypes 原始數據:', workerTypesData);
-    log('workerTypes 類型:', typeof workerTypesData);
-    log('workerTypes 是否為數組:', Array.isArray(workerTypesData));
-    
-    // 測試 itemCompanyData 數據
-    const itemCompanyDataRaw = await getProjectData('itemCompanyData');
-    log('獲取 itemCompanyData 原始數據:', itemCompanyDataRaw);
-    log('itemCompanyData 類型:', typeof itemCompanyDataRaw);
-    log('itemCompanyData 是否為數組:', Array.isArray(itemCompanyDataRaw));
-    
-    // 初始化默認數據
-    await initializeDefaultData();
-    
-    toggleLoading(false);
-  } catch (error) {
-    log('測試實際數據時出錯:', error);
-    document.getElementById('connection-status').innerHTML += 
-      `<br><span style="color: red;">數據測試錯誤: ${error.message}</span>`;
-    toggleLoading(false);
-  }
-}
-
-// 初始化默認數據（如果不存在）
-async function initializeDefaultData() {
-  log('初始化默認數據（如果需要）');
-  
-  // 檢查並初始化 workers
-  let currentWorkers = await getProjectData('workers');
-  if (!currentWorkers || typeof currentWorkers !== 'object') {
-    log('初始化空的 workers 數組');
-    await saveProjectData('workers', []);
-  } else if (!Array.isArray(currentWorkers)) {
-    // 如果不是數組但是對象，嘗試轉換為數組
-    log('將 workers 對象轉換為數組');
-    const workersArray = Object.values(currentWorkers).filter(item => item !== null);
-    await saveProjectData('workers', workersArray);
-  }
-  
-  // 檢查並初始化 workerTypes
-  let currentTypes = await getProjectData('workerTypes');
-  if (!currentTypes || typeof currentTypes !== 'object') {
-    log('初始化空的 workerTypes 數組');
-    await saveProjectData('workerTypes', []);
-  } else if (!Array.isArray(currentTypes)) {
-    // 如果不是數組但是對象，嘗試轉換為數組
-    log('將 workerTypes 對象轉換為數組');
-    const typesArray = Object.values(currentTypes).filter(item => item !== null);
-    await saveProjectData('workerTypes', typesArray);
-  }
-  
-  // 檢查並初始化 itemCompanyData
-  let currentItemCompany = await getProjectData('itemCompanyData');
-  if (!currentItemCompany || typeof currentItemCompany !== 'object') {
-    log('初始化空的 itemCompanyData 數組');
-    await saveProjectData('itemCompanyData', []);
-  } else if (!Array.isArray(currentItemCompany)) {
-    // 如果不是數組但是對象，嘗試轉換為數組
-    log('將 itemCompanyData 對象轉換為數組');
-    const itemCompanyArray = Object.values(currentItemCompany).filter(item => item !== null);
-    await saveProjectData('itemCompanyData', itemCompanyArray);
-  }
-  
-  // 重新加載數據
-  await initApp();
-}
-
-// 強制同步 Firebase 數據
-async function forceFirebaseSync() {
-  if (confirm('確定要強制同步數據到 Firebase？這將覆蓋遠程數據！')) {
-    toggleLoading(true);
-    try {
-      log('開始強制同步數據到 Firebase...');
-      
-      // 獲取當前建案
-      const currentProject = await getCurrentProject();
-      if (!currentProject) {
-        alert('錯誤: 未選擇當前建案');
-        toggleLoading(false);
-        return;
-      }
-      
-      // 初始化 Firebase
-      const db = firebase.firestore();
-      
-      // 檢查並創建專案文檔
-      const projectRef = db.collection("projects").doc(currentProject);
-      
-      // 清理並寫入 workers 數據
-      const safeWorkers = Array.isArray(workers) ? workers.filter(w => w !== null) : [];
-      await projectRef.collection('workers').doc("data").set({
-        items: safeWorkers,
-        lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
-      });
-      
-      // 清理並寫入 workerTypes 數據
-      const safeTypes = Array.isArray(workerTypes) ? workerTypes.filter(t => t !== null) : [];
-      await projectRef.collection('workerTypes').doc("data").set({
-        items: safeTypes,
-        lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
-      });
-      
-      // 清理並寫入 itemCompanyData 數據
-      const safeItemCompany = Array.isArray(itemCompanyData) ? itemCompanyData.filter(i => i !== null) : [];
-      await projectRef.collection('itemCompanyData').doc("data").set({
-        items: safeItemCompany,
-        lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
-      });
-      
-      log('強制同步完成，重新初始化應用...');
-      await initApp();
-      
-      document.getElementById('connection-status').innerHTML = 
-        '<span style="color: green;">數據已強制同步到 Firebase</span>';
-    } catch (error) {
-      log('強制同步時出錯:', error);
-      document.getElementById('connection-status').innerHTML = 
-        `<span style="color: red;">強制同步失敗: ${error.message}</span>`;
-    } finally {
-      toggleLoading(false);
-    }
-  }
-}
-
-// 強制重置數據
-async function resetDataAsync() {
-  if (confirm('確定要重置所有數據？這將清除所有工人和工項數據！')) {
-    log('用戶確認重置所有數據');
-    resetAllData();
-    
-    // 保存空數組到數據庫
-    toggleLoading(true);
-    try {
-      await saveProjectData('workers', []);
-      await saveProjectData('workerTypes', []);
-      await saveProjectData('itemCompanyData', []);
-      
-      log('所有數據已重置為空數組');
-      await render();
-      toggleLoading(false);
-    } catch (error) {
-      log('重置數據時出錯:', error);
-      toggleLoading(false);
-      alert('重置數據時出錯: ' + error.message);
-    }
-  }
-}
-
-// 安全獲取數據（確保返回數組）
-async function safeGetProjectData(key) {
-  try {
-    log(`嘗試獲取 ${key} 數據...`);
-    const rawData = await getProjectData(key);
-    log(`獲取 ${key} 原始數據類型:`, typeof rawData);
-    
-    // 如果數據為空，返回默認空數組
-    if (rawData === null || rawData === undefined) {
-      log(`${key} 數據為空，返回空數組`);
-      return [];
-    }
-    
-    // 如果已經是數組，直接返回
-    if (Array.isArray(rawData)) {
-      log(`${key} 是數組，包含 ${rawData.length} 個項目`);
-      return rawData;
-    }
-    
-    // 嘗試將對象轉換為數組
-    if (typeof rawData === 'object') {
-      log(`${key} 是對象，嘗試轉換為數組`);
-      const values = Object.values(rawData).filter(item => item !== null);
-      log(`轉換後得到 ${values.length} 個項目`);
-      return values;
-    }
-    
-    // 其他情況，返回空數組
-    log(`${key} 數據類型不是數組或對象，返回空數組`);
-    return [];
-  } catch (error) {
-    log(`讀取 ${key} 出錯:`, error);
-    return [];
-  }
-}
-
-// 初始化應用
-async function initApp() {
-  log('初始化應用...');
-  toggleLoading(true);
-  
-  // 重置所有數據為安全的默認值
-  resetAllData();
-  
-  // 顯示當前建案名稱
-  try {
-    const currentProject = await getCurrentProject();
-    document.getElementById("current-project-name").innerText = currentProject || '未知專案';
-  } catch (error) {
-    log('獲取當前專案名稱出錯:', error);
-    document.getElementById("current-project-name").innerText = '載入失敗';
-  }
-  
-  // 嘗試加載數據
-  try {
-    workers = await safeGetProjectData("workers");
-    workerTypes = await safeGetProjectData("workerTypes");
-    itemCompanyData = await safeGetProjectData("itemCompanyData");
-    
-    // 輸出數據類型和長度進行調試
-    log('數據初始化完成:');
-    log(`workers: ${workers.length} 個項目`);
-    log(`workerTypes: ${workerTypes.length} 個項目`);
-    log(`itemCompanyData: ${itemCompanyData.length} 個項目`);
-  } catch (error) {
-    log('初始化數據時出錯:', error);
-    resetAllData(); // 如果出錯，重置為默認值
-  }
-  
-  // 開始渲染
-  await render();
-  toggleLoading(false);
-}
-
-// 保存數據
-async function saveAsync() {
-  log('保存數據...');
-  
-  // 確保所有數據都是數組
-  if (!Array.isArray(workers)) {
-    log('警告: workers 不是數組，重置為空數組');
-    workers = [];
-  }
-  
-  if (!Array.isArray(workerTypes)) {
-    log('警告: workerTypes 不是數組，重置為空數組');
-    workerTypes = [];
-  }
-  
-  if (!Array.isArray(itemCompanyData)) {
-    log('警告: itemCompanyData 不是數組，重置為空數組');
-    itemCompanyData = [];
-  }
-  
-  try {
-    await saveProjectData("workers", workers);
-    await saveProjectData("workerTypes", workerTypes);
-    await saveProjectData("itemCompanyData", itemCompanyData);
-    log('數據保存成功');
-  } catch (error) {
-    log('保存數據時出錯:', error);
-    alert('保存數據時出錯: ' + error.message);
-  }
-}
-
-// 渲染界面
-async function render() {
-  log('開始渲染界面');
-  
-  try {
-    // 再次確保數據是數組
-    if (!Array.isArray(workers)) {
-      log('警告: workers 不是數組，重置為空數組');
-      workers = [];
-    }
-    
-    if (!Array.isArray(workerTypes)) {
-      log('警告: workerTypes 不是數組，重置為空數組');
-      workerTypes = [];
-    }
-    
-    if (!Array.isArray(itemCompanyData)) {
-      log('警告: itemCompanyData 不是數組，重置為空數組');
-      itemCompanyData = [];
-    }
-    
-    // 渲染工人列表 - 這些函數內部沒有異步操作，所以移除 await
-    renderWorkersList();
-    
-    // 渲染工項選擇框
-    renderTypeOptions();
-    
-    // 渲染工項和公司列表
-    renderItemCompanyList();
-    
-    log('渲染完成');
-  } catch (error) {
-    log('渲染時出錯:', error);
-    alert('渲染時出錯: ' + error.message);
-  }
-}
-
-// 渲染工人列表 - 不需要 async
-function renderWorkersList() {
+function render(){
   let html = "";
   
-  // 獲取篩選後的工人
+  // 獲取篩選後的記錄
   const filteredWorkers = getFilteredWorkers();
-  log(`篩選後的工人數量: ${filteredWorkers.length}`);
-  
-  // 遍歷並創建HTML
-  for (let i = 0; i < filteredWorkers.length; i++) {
-    const w = filteredWorkers[i];
-    if (!w) continue;
-    
-    // 查找原始索引
-    let originalIndex = -1;
-    for (let j = 0; j < workers.length; j++) {
-      const worker = workers[j];
-      if (worker && worker.date === w.date && worker.type === w.type && 
-          worker.count === w.count && worker.content === w.content) {
-        originalIndex = j;
-        break;
-      }
-    }
+
+  filteredWorkers.forEach((w,i)=>{
+    // 使用原始索引，確保刪除功能正確
+    const originalIndex = workers.findIndex(worker => 
+      worker.date === w.date && 
+      worker.type === w.type && 
+      worker.count === w.count && 
+      worker.content === w.content
+    );
     
     html += `
     <tr>
@@ -708,121 +169,36 @@ function renderWorkersList() {
       <td>${w.type || ''}</td>
       <td>${w.count || ''}</td>
       <td>${w.content || ''}</td>
-      <td><button onclick="removeAsync(${originalIndex})">刪除</button></td>
+      <td><button onclick="remove(${originalIndex})">刪除</button></td>
     </tr>
     `;
-  }
-  
+  });
+
   document.getElementById("list").innerHTML = html;
+  
+  // 渲染工項下拉選單
+  renderTypeOptions();
+  
+  // 渲染工項與公司列表
+  renderItemCompanyList();
 }
 
-// 獲取篩選後的工人
-function getFilteredWorkers() {
-  log('獲取篩選後的工人...');
-  
-  // 確保 workers 是數組
-  if (!Array.isArray(workers)) {
-    log('警告: workers 不是數組，重置為空數組');
-    workers = [];
-    return [];
-  }
-  
-  // 根據不同的過濾條件返回結果
-  if (currentFilter === 'all') {
-    log('返回所有工人');
-    return [...workers]; // 使用展開運算符創建新數組
-  }
-  
-  // 獲取今天的日期
-  const today = new Date();
-  const todayString = formatDate(today);
-  
-  if (currentFilter === 'today') {
-    log('只返回今天的工人');
-    return workers.filter(worker => worker && worker.date === todayString);
-  } 
-  
-  if (currentFilter === '14days') {
-    log('返回14天內的工人');
-    // 計算14天前的日期
-    const fourteenDaysAgo = new Date();
-    fourteenDaysAgo.setDate(today.getDate() - 13); // 14天包含今天
-    
-    return workers.filter(worker => {
-      if (!worker || !worker.date) return false;
-      
-      try {
-        const workerDate = new Date(worker.date + 'T00:00:00');
-        return workerDate >= fourteenDaysAgo && workerDate <= today;
-      } catch (e) {
-        log('日期解析錯誤:', e);
-        return false;
-      }
-    });
-  }
-  
-  // 默認返回所有
-  return [...workers];
-}
-
-// 格式化日期為 YYYY-MM-DD
-function formatDate(date) {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
-}
-
-// 渲染工項下拉選單 - 不需要 async
-function renderTypeOptions() {
-  let options = `<option value="" disabled selected>請選擇工項</option>`;
-  
-  // 收集唯一的工項
-  const uniqueItems = new Set();
-  
-  // 確保 itemCompanyData 是數組
-  if (Array.isArray(itemCompanyData)) {
-    for (const pair of itemCompanyData) {
-      if (pair && pair.item) {
-        uniqueItems.add(pair.item);
-      }
-    }
-  }
-  
-  // 將集合轉換為數組並添加選項
-  const itemsArray = Array.from(uniqueItems);
-  for (const item of itemsArray) {
-    options += `<option value="${item}">${item}</option>`;
-  }
-  
-  document.getElementById("type").innerHTML = options;
-}
-
-// 渲染工項與公司列表 - 不需要 async
+// 渲染工項與公司列表
 function renderItemCompanyList() {
   let html = "";
   
-  // 確保 itemCompanyData 是數組
-  if (!Array.isArray(itemCompanyData)) {
-    log('警告: itemCompanyData 不是數組，重置為空數組');
-    itemCompanyData = [];
-  }
-  
-  for (let i = 0; i < itemCompanyData.length; i++) {
-    const pair = itemCompanyData[i];
-    if (!pair) continue;
-    
+  itemCompanyData.forEach((pair, index) => {
     // 檢查當前索引是否為編輯狀態
-    if (i === currentEditIndex) {
+    if (index === currentEditIndex) {
       html += `
       <div class="item-company-pair">
         <div class="edit-form">
           <div>工項名稱:</div>
-          <input id="edit-item-${i}" value="${pair.item || ''}">
+          <input id="edit-item-${index}" value="${pair.item}">
           <div>公司名稱:</div>
-          <input id="edit-company-${i}" value="${pair.company || ''}">
+          <input id="edit-company-${index}" value="${pair.company}">
           <div>
-            <button onclick="saveEditAsync(${i})">保存</button>
+            <button onclick="saveEdit(${index})">保存</button>
             <button onclick="cancelEdit()">取消</button>
           </div>
         </div>
@@ -831,146 +207,52 @@ function renderItemCompanyList() {
     } else {
       html += `
       <div class="item-company-pair">
-        <div><strong>工項:</strong> ${pair.item || ''}</div>
-        <div><strong>公司:</strong> ${pair.company || ''}</div>
+        <div><strong>工項:</strong> ${pair.item}</div>
+        <div><strong>公司:</strong> ${pair.company}</div>
         <div>
-          <button onclick="editItemCompany(${i})">編輯</button>
-          <button onclick="removeItemCompanyAsync(${i})">刪除</button>
+          <button onclick="editItemCompany(${index})">編輯</button>
+          <button onclick="removeItemCompany(${index})">刪除</button>
         </div>
       </div>
       `;
     }
-  }
+  });
   
   document.getElementById("item-company-list").innerHTML = html;
 }
 
-// 篩選記錄
-async function filterRecords(filter) {
-  currentFilter = filter;
-  await render();
-}
-
-// 添加新的工人
-async function addWorkerAsync() {
-  // 獲取輸入值
-  const typeSelect = document.getElementById("type");
-  const typeValue = typeSelect.value;
-  const dateValue = document.getElementById("date").value;
-  const countValue = document.getElementById("count").value;
-  const contentValue = document.getElementById("content").value;
-  
-  // 驗證輸入
-  if (!typeValue) {
-    alert("請從下拉選單中選擇工項");
-    return;
-  }
-  
-  if (!dateValue) {
-    alert("請輸入日期");
-    return;
-  }
-  
-  if (!countValue) {
-    alert("請輸入人數");
-    return;
-  }
-  
-  toggleLoading(true);
-  
-  try {
-    // 確保 workers 是數組
-    if (!Array.isArray(workers)) {
-      log('警告: workers 不是數組，重置為空數組');
-      workers = [];
-    }
-    
-    // 添加新工人
-    workers.push({
-      date: dateValue,
-      type: typeValue,
-      count: countValue,
-      content: contentValue
-    });
-    
-    // 保存並重新渲染
-    await saveAsync();
-    await render();
-    
-    // 清空輸入欄位
-    document.getElementById("date").value = "";
-    typeSelect.selectedIndex = 0;
-    document.getElementById("count").value = "";
-    document.getElementById("content").value = "";
-  } catch (error) {
-    log('添加工人時出錯:', error);
-    alert('添加工人時出錯: ' + error.message);
-  } finally {
-    toggleLoading(false);
-  }
-}
-
 // 新增工項與公司
-async function addItemCompanyAsync() {
-  // 獲取輸入值
+function addItemCompany() {
   const itemName = document.getElementById("item-name").value.trim();
   const companyName = document.getElementById("company-name").value.trim();
   
-  // 驗證輸入
   if (!itemName || !companyName) {
     alert("工項名稱和公司名稱都不能為空!");
     return;
   }
   
-  toggleLoading(true);
+  // 檢查是否已存在相同的工項和公司組合
+  const exists = itemCompanyData.some(pair => 
+    pair.item === itemName && pair.company === companyName
+  );
   
-  try {
-    // 確保 itemCompanyData 是數組
-    if (!Array.isArray(itemCompanyData)) {
-      log('警告: itemCompanyData 不是數組，重置為空數組');
-      itemCompanyData = [];
-    }
-    
-    // 檢查是否重複
-    const exists = itemCompanyData.some(pair => 
-      pair && pair.item === itemName && pair.company === companyName
-    );
-    
-    if (exists) {
-      alert("此工項與公司組合已存在!");
-      toggleLoading(false);
-      return;
-    }
-    
-    // 添加新的工項和公司
-    itemCompanyData.push({ 
-      item: itemName, 
-      company: companyName 
-    });
-    
-    // 保存並重新渲染
-    await saveAsync();
-    await render();
-    
-    // 清空輸入欄位
-    document.getElementById("item-name").value = "";
-    document.getElementById("company-name").value = "";
-  } catch (error) {
-    log('添加工項與公司時出錯:', error);
-    alert('添加工項與公司時出錯: ' + error.message);
-  } finally {
-    toggleLoading(false);
+  if (exists) {
+    alert("此工項與公司組合已存在!");
+    return;
   }
+  
+  itemCompanyData.push({ item: itemName, company: companyName });
+  
+  save();
+  render();
+  
+  // 清空輸入欄位
+  document.getElementById("item-name").value = "";
+  document.getElementById("company-name").value = "";
 }
 
 // 開始編輯工項與公司
 function editItemCompany(index) {
-  // 確保 itemCompanyData 是數組且索引有效
-  if (!Array.isArray(itemCompanyData) || index < 0 || index >= itemCompanyData.length) {
-    log(`警告: 無法編輯索引 ${index}，itemCompanyData 無效或索引超出範圍`);
-    return;
-  }
-  
   currentEditIndex = index;
   render();
 }
@@ -982,193 +264,167 @@ function cancelEdit() {
 }
 
 // 保存編輯
-async function saveEditAsync(index) {
-  // 確保 itemCompanyData 是數組且索引有效
-  if (!Array.isArray(itemCompanyData) || index < 0 || index >= itemCompanyData.length) {
-    log(`警告: 無法保存索引 ${index} 的編輯，itemCompanyData 無效或索引超出範圍`);
-    alert("保存失敗：數據無效");
-    return;
-  }
-  
-  // 獲取編輯的值
+function saveEdit(index) {
   const newItemName = document.getElementById(`edit-item-${index}`).value.trim();
   const newCompanyName = document.getElementById(`edit-company-${index}`).value.trim();
   
-  // 驗證輸入
   if (!newItemName || !newCompanyName) {
     alert("工項名稱和公司名稱都不能為空!");
     return;
   }
   
-  toggleLoading(true);
+  // 檢查是否與其他記錄重複
+  const isDuplicate = itemCompanyData.some((pair, idx) => 
+    idx !== index && pair.item === newItemName && pair.company === newCompanyName
+  );
   
-  try {
-    // 檢查是否重複
-    const isDuplicate = itemCompanyData.some((pair, i) => 
-      i !== index && pair && pair.item === newItemName && pair.company === newCompanyName
-    );
-    
-    if (isDuplicate) {
-      alert("此工項與公司組合已存在!");
-      toggleLoading(false);
-      return;
-    }
-    
-    // 保存原始工項名稱，用於稍後更新相關記錄
-    const oldItemName = itemCompanyData[index].item;
-    
-    // 更新工項與公司數據
-    itemCompanyData[index] = { 
-      item: newItemName, 
-      company: newCompanyName 
-    };
-    
-    // 如果工項名稱已更改，需要更新相關記錄
-    if (oldItemName !== newItemName && Array.isArray(workers)) {
-      // 更新workers記錄中的工項名稱
-      for (let i = 0; i < workers.length; i++) {
-        const worker = workers[i];
-        if (worker && worker.type === oldItemName) {
-          worker.type = newItemName;
-        }
-      }
-      
-      // 更新workerTypes中的工項名稱
-      if (Array.isArray(workerTypes)) {
-        const oldTypeIndex = workerTypes.indexOf(oldItemName);
-        if (oldTypeIndex !== -1) {
-          workerTypes[oldTypeIndex] = newItemName;
-        } else {
-          // 如果不存在，添加新工項
-          workerTypes.push(newItemName);
-        }
-      }
-    }
-    
-    // 結束編輯狀態
-    currentEditIndex = -1;
-    
-    // 保存並重新渲染
-    await saveAsync();
-    await render();
-  } catch (error) {
-    log('保存編輯時出錯:', error);
-    alert('保存編輯時出錯: ' + error.message);
-  } finally {
-    toggleLoading(false);
+  if (isDuplicate) {
+    alert("此工項與公司組合已存在!");
+    return;
   }
+  
+  // 保存原始工項名稱，用於稍後更新相關記錄
+  const oldItemName = itemCompanyData[index].item;
+  
+  // 更新工項與公司數據
+  itemCompanyData[index] = { 
+    item: newItemName, 
+    company: newCompanyName 
+  };
+  
+  // 如果工項名稱已更改，需要更新相關記錄
+  if (oldItemName !== newItemName) {
+    // 更新workers記錄中的工項名稱
+    workers.forEach(worker => {
+      if (worker.type === oldItemName) {
+        worker.type = newItemName;
+      }
+    });
+    
+    // 更新workerTypes中的工項名稱
+    const oldTypeIndex = workerTypes.indexOf(oldItemName);
+    if (oldTypeIndex !== -1) {
+      workerTypes[oldTypeIndex] = newItemName;
+    } else {
+      // 如果不存在，添加新工項
+      workerTypes.push(newItemName);
+    }
+  }
+  
+  // 結束編輯狀態
+  currentEditIndex = -1;
+  
+  save();
+  render();
 }
 
 // 刪除工項與公司
-async function removeItemCompanyAsync(index) {
-  // 確保 itemCompanyData 是數組且索引有效
-  if (!Array.isArray(itemCompanyData) || index < 0 || index >= itemCompanyData.length) {
-    log(`警告: 無法刪除索引 ${index}，itemCompanyData 無效或索引超出範圍`);
-    return;
-  }
-  
-  const item = itemCompanyData[index] || {};
-  if (confirm(`確定要刪除 "${item.item || ''}" - "${item.company || ''}" 這組工項與公司嗎？`)) {
-    toggleLoading(true);
-    try {
-      itemCompanyData.splice(index, 1);
-      await saveAsync();
-      await render();
-    } catch (error) {
-      log('刪除工項與公司時出錯:', error);
-      alert('刪除工項與公司時出錯: ' + error.message);
-    } finally {
-      toggleLoading(false);
-    }
+function removeItemCompany(index) {
+  if (confirm(`確定要刪除 "${itemCompanyData[index].item}" - "${itemCompanyData[index].company}" 這組工項與公司嗎？`)) {
+    itemCompanyData.splice(index, 1);
+    save();
+    render();
   }
 }
 
-// 刪除工人
-async function removeAsync(i) {
-  // 確保 workers 是數組且索引有效
-  if (!Array.isArray(workers) || i < 0 || i >= workers.length) {
-    log(`警告: 無法刪除索引 ${i}，workers 無效或索引超出範圍`);
-    return;
-  }
-  
-  toggleLoading(true);
-  try {
-    workers.splice(i, 1);
-    await saveAsync();
-    await render();
-  } catch (error) {
-    log('刪除工人時出錯:', error);
-    alert('刪除工人時出錯: ' + error.message);
-  } finally {
-    toggleLoading(false);
-  }
+// 篩選記錄
+function filterRecords(filter) {
+  currentFilter = filter;
+  render();
 }
 
-// 啟動應用 - 改進的初始化順序
-log('腳本開始加載');
-window.addEventListener('DOMContentLoaded', async () => {
-  log('頁面加載完成，開始初始化');
-  toggleLoading(true);
+// 獲取篩選後的記錄
+function getFilteredWorkers() {
+  if (currentFilter === 'all') {
+    return [...workers];
+  }
   
-  try {
-    // 首先檢查 Firebase 配置和函數可見性
-    if (typeof firebase === 'undefined' || !firebase.apps.length) {
-      log('錯誤: Firebase 未初始化，嘗試加載備份數據');
-      document.getElementById('connection-status').innerHTML = 
-        '<span style="color: red;">警告: Firebase 未初始化，使用本地數據</span>';
-    } else {
-      log('Firebase 已初始化');
+  // 獲取今天的日期字符串（YYYY-MM-DD格式）
+  const today = new Date();
+  const todayString = today.getFullYear() + '-' + 
+                      String(today.getMonth() + 1).padStart(2, '0') + '-' + 
+                      String(today.getDate()).padStart(2, '0');
+  
+  if (currentFilter === 'today') {
+    return workers.filter(worker => worker.date === todayString);
+  } else if (currentFilter === '14days') {
+    // 計算14天前的日期
+    const fourteenDaysAgo = new Date();
+    fourteenDaysAgo.setDate(today.getDate() - 13); // 14天包含今天
+    
+    return workers.filter(worker => {
+      if (!worker.date) return false;
       
-      // 檢查關鍵函數是否可用
-      if (typeof window.getProjectDataFromFirebase !== 'function') {
-        log('警告: Firebase 函數未導出，可能無法正確與 Firebase 交互');
-        
-        // 向 window 對象添加關鍵函數
-        if (typeof getProjectDataFromFirebase === 'function') {
-          window.getProjectDataFromFirebase = getProjectDataFromFirebase;
-          log('已將 getProjectDataFromFirebase 添加到 window 對象');
-        }
-        
-        if (typeof saveProjectDataToFirebase === 'function') {
-          window.saveProjectDataToFirebase = saveProjectDataToFirebase;
-          log('已將 saveProjectDataToFirebase 添加到 window 對象');
-        }
-        
-        if (typeof getCurrentProjectFromFirebase === 'function') {
-          window.getCurrentProjectFromFirebase = getCurrentProjectFromFirebase;
-          log('已將 getCurrentProjectFromFirebase 添加到 window 對象');
-        }
-      }
-    }
-    
-    // 首先初始化應用，確保基本功能可用
-    await initApp();
-    log('應用初始化完成');
-    
-    // 設置今天的日期為默認值
-    const today = new Date();
-    const formattedToday = formatDate(today);
-    document.getElementById("date").value = formattedToday;
-    
-    // 然後嘗試測試資料庫連接
-    setTimeout(async () => {
-      try {
-        await testDatabaseConnection();
-      } catch (error) {
-        log('資料庫連接測試出錯:', error);
-        document.getElementById('connection-status').innerHTML = 
-          `<span style="color: red;">連接測試失敗: ${error.message}</span>`;
-      }
-    }, 500);
-    
-  } catch (error) {
-    log('應用初始化過程中發生嚴重錯誤:', error);
-    alert('無法初始化應用: ' + error.message);
-    document.getElementById('connection-status').innerHTML = 
-      `<span style="color: red;">初始化失敗: ${error.message}</span>`;
-    toggleLoading(false);
+      // 將工人的日期字符串轉換為日期對象進行比較
+      const workerDate = new Date(worker.date + 'T00:00:00'); // 添加時間部分以確保一致性
+      return workerDate >= fourteenDaysAgo && workerDate <= today;
+    });
   }
-});
+  
+  return [...workers];
+}
+
+// 渲染工項下拉選單 (修改為只顯示從工項與公司管理中建立的工項)
+function renderTypeOptions() {
+  let options = `<option value="" disabled selected>請選擇工項</option>`;
+  
+  // 只使用從工項管理中獲取的工項
+  const uniqueItems = [...new Set(itemCompanyData.map(pair => pair.item))];
+  
+  uniqueItems.forEach(item => {
+    options += `<option value="${item}">${item}</option>`;
+  });
+  
+  document.getElementById("type").innerHTML = options;
+}
+
+function addWorker(){
+  // 獲取工項值
+  const typeSelect = document.getElementById("type");
+  const typeValue = typeSelect.value;
+  
+  // 驗證已選擇工項
+  if (!typeValue) {
+    alert("請從下拉選單中選擇工項");
+    return;
+  }
+  
+  // 驗證日期和人數
+  if (!date.value) {
+    alert("請輸入日期");
+    return;
+  }
+  
+  if (!count.value) {
+    alert("請輸入人數");
+    return;
+  }
+  
+  workers.push({
+    date: date.value,
+    type: typeValue,
+    count: count.value,
+    content: content.value // 工作內容
+  });
+
+  save();
+  render();
+  
+  // 清空輸入欄位
+  date.value = "";
+  typeSelect.selectedIndex = 0; // 重置選擇
+  count.value = "";
+  content.value = "";
+}
+
+function remove(i){
+  workers.splice(i,1);
+  save();
+  render();
+}
+
+render();
+
 </script>
 
 </body>

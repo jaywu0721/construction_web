@@ -2,367 +2,561 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>施日誌</title>
+<title>施工日誌</title>
+
 <link rel="stylesheet" href="css/style.css">
-<style>
-  .container {
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
-  }
-  .form-group {
-    margin-bottom: 15px;
-  }
-  .form-group label {
-    display: block;
-    margin-bottom: 5px;
-  }
-  .form-control {
-    width: 100%;
-    padding: 8px;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-  }
-  textarea.form-control {
-    min-height: 100px;
-  }
-  .btn {
-    padding: 8px 16px;
-    background-color: #4CAF50;
-    color: white;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-  }
-  .btn:hover {
-    background-color: #45a049;
-  }
-  .btn-danger {
-    background-color: #f44336;
-  }
-  .btn-danger:hover {
-    background-color: #d32f2f;
-  }
-  .filter-btn {
-    margin-right: 5px;
-    padding: 5px 10px;
-    background-color: #f1f1f1;
-    border: 1px solid #ddd;
-    border-radius: 3px;
-    cursor: pointer;
-  }
-  .filter-btn.active {
-    background-color: #4CAF50;
-    color: white;
-  }
-  .clickable-row {
-    cursor: pointer;
-  }
-  .clickable-row:hover {
-    background-color: #f5f5f5;
-  }
-  .modal {
-    display: none;
-    position: fixed;
-    z-index: 1000;
-    left: 0;
-    top: 0;
-    width: 100%;
-    height: 100%;
-    overflow: auto;
-    background-color: rgba(0,0,0,0.4);
-  }
-  .modal-content {
-    background-color: #fefefe;
-    margin: 10% auto;
-    padding: 20px;
-    border: 1px solid #888;
-    width: 80%;
-    max-width: 800px;
-  }
-  .close {
-    color: #aaa;
-    float: right;
-    font-size: 28px;
-    font-weight: bold;
-    cursor: pointer;
-  }
-  .close:hover {
-    color: black;
-  }
-  .log-detail-item {
-    margin-bottom: 10px;
-    border-bottom: 1px solid #eee;
-    padding-bottom: 10px;
-  }
-  .log-detail-label {
-    font-weight: bold;
-    margin-bottom: 5px;
-  }
-  .log-detail-value {
-    white-space: pre-wrap;
-  }
-  .materials-table {
-    width: 100%;
-    border-collapse: collapse;
-    margin-top: 10px;
-  }
-  .materials-table th, .materials-table td {
-    border: 1px solid #ddd;
-    padding: 8px;
-    text-align: left;
-  }
-  .worker-helper {
-    margin-top: 20px;
-    padding: 15px;
-    background-color: #f9f9f9;
-    border: 1px solid #ddd;
-    border-radius: 5px;
-  }
-  table {
-    width: 100%;
-    border-collapse: collapse;
-    margin-top: 10px;
-  }
-  th, td {
-    border: 1px solid #ddd;
-    padding: 8px;
-    text-align: left;
-  }
-  th {
-    background-color: #f2f2f2;
-  }
-</style>
-</head>
-<body>
 
-<button onclick="go('index.html')">回首頁</button>
-
-<h2>施日誌</h2>
-
-<!-- 顯示當前建案 -->
-<div class="current-project">
-  當建案: <span id="current-project-name">載入中...</span>
-</div>
-
-<!-- 篩選按鈕 -->
-<div style="margin: 10px 0;">
-  <button id="filter-all" class="filter-btn active" onclick="filterLogs(0)">全部</button>
-  <button id="filter-7days" class="filter-btn" onclick="filterLogs(7)">最近 7 天</button>
-  <button id="filter-14days" class="filter-btn" onclick="filterLogs(14)">最近 14 天</button>
-</div>
-
-<!-- 日誌列表 -->
-<div class="container">
-  <div>
-    <h3>日誌列表</h3>
-    <table>
-      <thead>
-        <tr>
-          <th>日期</th>
-          <th>施工進度</th>
-          <th>填表人</th>
-          <th>操作</th>
-        </tr>
-      </thead>
-      <tbody id="log_list"></tbody>
-    </table>
-  </div>
-
-  <!-- 新增日誌表單 -->
-  <div>
-    <h3>新增日誌</h3>
-    <form id="log-form" onsubmit="checkAndAddLog(); return false;">
-      <div class="form-group">
-        <label for="date">日期:</label>
-        <input type="date" id="date" class="form-control" required>
-      </div>
-      
-      <div class="form-group">
-        <label for="weather_am">天氣 (上午):</label>
-        <input type="text" id="weather_am" class="form-control" placeholder="晴、陰、雨...">
-      </div>
-      
-      <div class="form-group">
-        <label for="weather_pm">天氣 (下午):</label>
-        <input type="text" id="weather_pm" class="form-control" placeholder="晴、陰、雨...">
-      </div>
-      
-      <div class="form-group">
-        <label for="author">填表人:</label>
-        <input type="text" id="author" class="form-control" placeholder="填表人姓名">
-      </div>
-      
-      <div class="form-group">
-        <label for="progress">施工進度:</label>
-        <textarea id="progress" class="form-control" rows="5" placeholder="請輸入今日施工進度..."></textarea>
-      </div>
-      
-      <!-- 材料管理區塊 -->
-      <div class="form-group">
-        <h4>材料管理</h4>
-        <div style="display: flex; gap: 10px; margin-bottom: 10px;">
-          <input type="text" id="material_name" class="form-control" placeholder="材料名稱">
-          <input type="text" id="material_qty" class="form-control" placeholder="數量">
-          <input type="text" id="material_unit" class="form-control" placeholder="單位">
-          <input type="text" id="material_purpose" class="form-control" placeholder="用途">
-          <button type="button" class="btn" onclick="addMaterial()">新增材料</button>
-        </div>
-        <div id="materials_list"></div>
-      </div>
-      
-      <!-- 出工紀錄輔助工具 -->
-      <div class="form-group worker-helper">
-        <h4>出工紀錄輔助工具 <button type="button" class="btn" onclick="toggleWorkerHelper()">顯示/隱藏</button></h4>
-        <div id="worker-helper-content">
-          <table>
-            <thead>
-              <tr>
-                <th>日期</th>
-                <th>工項</th>
-                <th>人數</th>
-                <th>工作內容</th>
-              </tr>
-            </thead>
-            <tbody id="workers_table"></tbody>
-          </table>
-          <div id="workers_summary" style="margin-top: 10px; padding: 10px; background-color: #e9f7ef; border-radius: 5px;"></div>
-          <button type="button" class="btn" style="margin-top: 10px;" onclick="writeWorkerInfoToProgress()">將出工紀錄寫入施工進度</button>
-        </div>
-      </div>
-      
-      <div class="form-group">
-        <label for="supervisor">監造單位指示:</label>
-        <textarea id="supervisor" class="form-control" rows="3" placeholder="監造單位的指示內容..."></textarea>
-      </div>
-      
-      <div class="form-group">
-        <label for="issue">異常狀況通報:</label>
-        <textarea id="issue" class="form-control" rows="3" placeholder="任何異常狀況..."></textarea>
-      </div>
-      
-      <div class="form-group">
-        <label for="engineer">專任工程人員督察紀錄:</label>
-        <textarea id="engineer" class="form-control" rows="3" placeholder="專任工程人員的督察記錄..."></textarea>
-      </div>
-      
-      <div style="margin-top: 20px;">
-        <button type="submit" class="btn">新增日誌</button>
-        <button type="button" class="btn" onclick="clearForm()">清空表單</button>
-        <button type="button" class="btn" onclick="generatePDF()">產生 PDF</button>
-      </div>
-    </form>
-  </div>
-</div>
-
-<!-- 日誌詳細資料模態框 -->
-<div id="logDetailModal" class="modal">
-  <div class="modal-content">
-    <span class="close" onclick="closeLogDetail()">&times;</span>
-    <h3>日誌詳細資料</h3>
-    <div id="logDetailContent"></div>
-    <button onclick="printLogDetail()" class="btn">列印</button>
-  </div>
-</div>
-
-<!-- 編輯日誌模態框 -->
-<div id="editLogModal" class="modal">
-  <div class="modal-content">
-    <span class="close" onclick="closeEditLog()">&times;</span>
-    <h3>編輯日誌</h3>
-    <div class="form-group">
-      <label for="edit_date">日期:</label>
-      <input type="date" id="edit_date" class="form-control">
-    </div>
-    <div class="form-group">
-      <label for="edit_weather_am">天氣 (上午):</label>
-      <input type="text" id="edit_weather_am" class="form-control">
-    </div>
-    <div class="form-group">
-      <label for="edit_weather_pm">天氣 (下午):</label>
-      <input type="text" id="edit_weather_pm" class="form-control">
-    </div>
-    <div class="form-group">
-      <label for="edit_author">填表人:</label>
-      <input type="text" id="edit_author" class="form-control">
-    </div>
-    <div class="form-group">
-      <label for="edit_progress">施工進度:</label>
-      <textarea id="edit_progress" class="form-control" rows="5"></textarea>
-    </div>
-    <div class="form-group">
-      <label for="edit_supervisor">監造單位指示:</label>
-      <textarea id="edit_supervisor" class="form-control" rows="3"></textarea>
-    </div>
-    <div class="form-group">
-      <label for="edit_issue">異常狀況通報:</label>
-      <textarea id="edit_issue" class="form-control" rows="3"></textarea>
-    </div>
-    <div class="form-group">
-      <label for="edit_engineer">專任工程人員督察紀錄:</label>
-      <textarea id="edit_engineer" class="form-control" rows="3"></textarea>
-    </div>
-    <button onclick="saveEditLog()" class="btn">保存</button>
-    <button onclick="closeEditLog()" class="btn">取消</button>
-  </div>
-</div>
-
-<!-- 日期重複警告模態框 -->
-<div id="duplicateDateModal" class="modal">
-  <div class="modal-content">
-    <span class="close" onclick="closeDuplicateWarning()">&times;</span>
-    <h3>警告：日期重複</h3>
-    <p>日期 <span id="duplicate-date"></span> 已經有紀錄了。</p>
-    <p>您可以：</p>
-    <button onclick="editDuplicateLog()" class="btn">編輯現有紀錄</button>
-    <button onclick="closeDuplicateWarning()" class="btn">取消</button>
-  </div>
-</div>
-
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <!-- Firebase SDK 引入 (使用兼容模式) -->
 <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore-compat.js"></script>
-
-<!-- 引入 jsPDF 用於生成 PDF -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
 <!-- 引入 Firebase 配置檔案 -->
 <script src="js/firebase-config.js"></script>
 
 <!-- 引入主要JS檔案 -->
 <script src="js/main.js"></script>
+<style>
+/* 模態框樣式 */
+.modal {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0,0,0,0.7);
+  z-index: 1000;
+  overflow: auto;
+}
+
+.modal-content {
+  background-color: white;
+  margin: 5% auto;
+  padding: 20px;
+  width: 80%;
+  max-width: 800px;
+  border-radius: 8px;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
+.close-btn {
+  float: right;
+  font-size: 24px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.log-detail-item {
+  margin-bottom: 15px;
+}
+
+.log-detail-label {
+  font-weight: bold;
+  margin-bottom: 5px;
+}
+
+.log-detail-value {
+  padding: 8px;
+  background-color: #f9f9f9;
+  border-radius: 4px;
+  white-space: pre-wrap;
+}
+
+.modal-actions {
+  margin-top: 20px;
+  text-align: center;
+}
+
+.clickable-row {
+  cursor: pointer;
+}
+
+.clickable-row:hover {
+  background-color: #eaf3ff;
+}
+
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  #printArea, #printArea * {
+    visibility: visible;
+  }
+  #printArea {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+  }
+  .no-print {
+    display: none !important;
+  }
+}
+
+/* 保留欄位樣式 */
+.reserved-feature {
+  background-color: #f8f9fa;
+  padding: 10px;
+  border-left: 4px solid #2d7ff9;
+  margin-bottom: 15px;
+}
+
+/* 工作紀錄表格樣式 */
+.worker-row {
+  background-color: #f5f5f5;
+}
+
+.worker-row:hover {
+  background-color: #e0e0e0;
+}
+
+.worker-summary {
+  margin-top: 15px;
+  padding: 10px;
+  background-color: #e8f4ff;
+  border-radius: 5px;
+  font-weight: bold;
+}
+
+.action-btn {
+  margin-top: 10px;
+  background-color: #4CAF50;
+}
+
+/* 篩選按鈕樣式 */
+.filter-buttons {
+  margin: 15px 0;
+  text-align: right;
+}
+
+.filter-btn {
+  margin-left: 8px;
+  padding: 6px 12px;
+  background-color: #f0f0f0;
+  color: #333;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.filter-btn.active {
+  background-color: #2d7ff9;
+  color: white;
+  border-color: #2d7ff9;
+}
+
+/* 編輯模態框樣式 */
+.edit-modal {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0,0,0,0.7);
+  z-index: 1000;
+  overflow: auto;
+}
+
+.edit-modal-content {
+  background-color: white;
+  margin: 5% auto;
+  padding: 20px;
+  width: 80%;
+  max-width: 800px;
+  border-radius: 8px;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
+.edit-form-group {
+  margin-bottom: 15px;
+}
+
+.edit-form-label {
+  display: block;
+  font-weight: bold;
+  margin-bottom: 5px;
+}
+
+.edit-form-input {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.edit-form-textarea {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  min-height: 100px;
+}
+
+.edit-modal-actions {
+  margin-top: 20px;
+  text-align: right;
+}
+
+.edit-modal-actions button {
+  margin-left: 10px;
+}
+
+/* 出工紀錄輔助工具樣式 */
+.worker-helper {
+  margin-top: 10px;
+  margin-bottom: 20px;
+  padding: 15px;
+  background-color: #f8f9fa;
+  border-radius: 5px;
+  border: 1px solid #e0e0e0;
+}
+
+.worker-helper-title {
+  font-weight: bold;
+  margin-bottom: 10px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.worker-helper-toggle {
+  background-color: #f0f0f0;
+  border: 1px solid #ddd;
+  padding: 4px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.worker-helper-content {
+  display: block;
+}
+
+/* 警告模態框樣式 */
+.warning-modal {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0,0,0,0.7);
+  z-index: 1100;
+}
+
+.warning-modal-content {
+  background-color: white;
+  margin: 15% auto;
+  padding: 20px;
+  width: 60%;
+  max-width: 500px;
+  border-radius: 8px;
+  text-align: center;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+}
+
+.warning-title {
+  color: #e74c3c;
+  font-size: 18px;
+  margin-bottom: 15px;
+}
+
+.warning-message {
+  margin-bottom: 20px;
+}
+
+.warning-actions {
+  display: flex;
+  justify-content: center;
+  gap: 15px;
+}
+
+.warning-btn {
+  padding: 8px 15px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.warning-btn-edit {
+  background-color: #3498db;
+  color: white;
+  border: none;
+}
+
+.warning-btn-cancel {
+  background-color: #f0f0f0;
+  color: #333;
+  border: 1px solid #ddd;
+}
+
+.current-project {
+  font-size: 18px;
+  font-weight: bold;
+  margin-bottom: 20px;
+  color: #3a7bd5;
+}
+</style>
+
+</head>
+
+<body>
+
+<button onclick="go('index.html')">回首頁</button>
+
+<h2>施工日誌</h2>
+
+<!-- 顯示當前建案 -->
+<div class="current-project">
+  當前建案: <span id="current-project-name"></span>
+</div>
+
+<h3>基本資料</h3>
+
+日期
+<input type="date" id="date" onchange="updateWorkersByDate()">
+
+天氣(上午)
+<input id="weather_am">
+
+天氣(下午)
+<input id="weather_pm">
+
+填表人
+<input id="author">
+
+<h3>施工進度</h3>
+
+<!-- 替換為大型文字區域 -->
+<textarea id="progress" rows="6" placeholder="請在此輸入施工進度內容..."></textarea>
+
+<!-- 出工紀錄輔助工具 -->
+<div class="worker-helper">
+  <div class="worker-helper-title">
+    <span>出工紀錄輔助工具</span>
+    <button class="worker-helper-toggle" onclick="toggleWorkerHelper()">顯示/隱藏</button>
+  </div>
+  <div class="worker-helper-content" id="worker-helper-content">
+    <div id="workers_summary" class="worker-summary" style="display:none;"></div>
+    
+    <div style="text-align:right; margin-bottom:10px;">
+      <button class="action-btn" onclick="writeWorkerInfoToProgress()">將出工紀錄寫入施工進度</button>
+    </div>
+    
+    <table>
+    <thead>
+    <tr>
+    <th>日期</th>
+    <th>工種</th>
+    <th>人數</th>
+    <th>工作內容</th>
+    </tr>
+    </thead>
+    
+    <tbody id="workers_table"></tbody>
+    </table>
+  </div>
+</div>
+
+<h3>材料管理</h3>
+
+<div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 10px;">
+  <div>
+    材料名稱
+    <input id="material_name">
+  </div>
+  <div>
+    數量
+    <input id="material_qty">
+  </div>
+  <div>
+    單位
+    <input id="material_unit">
+  </div>
+  <div>
+    用途
+    <input id="material_purpose">
+  </div>
+</div>
+
+<button onclick="addMaterial()" style="margin-top: 10px; width: auto;">新增材料</button>
+
+<div id="materials_list" style="margin-top: 10px;"></div>
+
+<h3>重要事項</h3>
+
+監造單位指示
+<textarea id="supervisor"></textarea>
+
+異常狀況通報
+<textarea id="issue"></textarea>
+
+專任工程人員督察紀錄
+<textarea id="engineer"></textarea>
+
+待辦事項
+<div class="reserved-feature">
+  <p>此功能將來會與其他系統連動。目前為預留欄位。</p>
+</div>
+
+<h3>自主檢查</h3>
+
+施工前職安檢查紀錄
+<div class="reserved-feature">
+  <p>此功能將來會與其他系統連動。目前為預留欄位。</p>
+</div>
+
+<h3>品質管理</h3>
+<div class="reserved-feature">
+  <p>此功能將來會與其他系統連動。目前為預留欄位。</p>
+</div>
+
+<br><br>
+
+<button onclick="checkAndAddLog()">新增施工日誌</button>
+
+<button onclick="generatePDF()">匯出監造日報PDF</button>
+
+<h3>施工日誌紀錄</h3>
+
+<div class="filter-buttons">
+  <button class="filter-btn" onclick="filterLogs(7)" id="filter-7days">最近7天</button>
+  <button class="filter-btn" onclick="filterLogs(14)" id="filter-14days">最近14天</button>
+  <button class="filter-btn active" onclick="filterLogs(0)" id="filter-all">全部</button>
+</div>
+
+<table>
+
+<thead>
+<tr>
+<th>日期</th>
+<th>施工進度</th>
+<th>填表人</th>
+<th>操作</th>
+</tr>
+</thead>
+
+<tbody id="log_list"></tbody>
+
+</table>
+
+<!-- 詳細資料模態框 -->
+<div id="logDetailModal" class="modal">
+  <div class="modal-content">
+    <span class="close-btn" onclick="closeLogDetail()">&times;</span>
+    <div id="printArea">
+      <h2>施工日誌詳細資料</h2>
+      <div id="logDetailContent"></div>
+    </div>
+    <div class="modal-actions no-print">
+      <button onclick="printLogDetail()">列印</button>
+      <button onclick="closeLogDetail()">關閉</button>
+    </div>
+  </div>
+</div>
+
+<!-- 編輯日誌模態框 -->
+<div id="editLogModal" class="edit-modal">
+  <div class="edit-modal-content">
+    <span class="close-btn" onclick="closeEditLog()">&times;</span>
+    <h2>編輯施工日誌</h2>
+    
+    <div class="edit-form-group">
+      <label class="edit-form-label">日期</label>
+      <input type="date" id="edit_date" class="edit-form-input">
+    </div>
+    
+    <div class="edit-form-group">
+      <label class="edit-form-label">天氣(上午)</label>
+      <input id="edit_weather_am" class="edit-form-input">
+    </div>
+    
+    <div class="edit-form-group">
+      <label class="edit-form-label">天氣(下午)</label>
+      <input id="edit_weather_pm" class="edit-form-input">
+    </div>
+    
+    <div class="edit-form-group">
+      <label class="edit-form-label">填表人</label>
+      <input id="edit_author" class="edit-form-input">
+    </div>
+    
+    <div class="edit-form-group">
+      <label class="edit-form-label">施工進度</label>
+      <textarea id="edit_progress" class="edit-form-textarea"></textarea>
+    </div>
+    
+    <div class="edit-form-group">
+      <label class="edit-form-label">監造單位指示</label>
+      <textarea id="edit_supervisor" class="edit-form-textarea"></textarea>
+    </div>
+    
+    <div class="edit-form-group">
+      <label class="edit-form-label">異常狀況通報</label>
+      <textarea id="edit_issue" class="edit-form-textarea"></textarea>
+    </div>
+    
+    <div class="edit-form-group">
+      <label class="edit-form-label">專任工程人員督察紀錄</label>
+      <textarea id="edit_engineer" class="edit-form-textarea"></textarea>
+    </div>
+    
+    <div class="edit-modal-actions">
+      <button onclick="closeEditLog()">取消</button>
+      <button onclick="saveEditLog()">儲存</button>
+    </div>
+  </div>
+</div>
+
+<!-- 日期重複警告模態框 -->
+<div id="duplicateDateModal" class="warning-modal">
+  <div class="warning-modal-content">
+    <div class="warning-title">日期重複提醒</div>
+    <div class="warning-message">
+      您選擇的日期 <span id="duplicate-date"></span> 已經有施工日誌記錄。
+      <br><br>
+      請從施工日誌紀錄中編輯現有記錄，而不是創建重複記錄。
+    </div>
+    <div class="warning-actions">
+      <button class="warning-btn warning-btn-edit" onclick="editDuplicateLog()">前往編輯</button>
+      <button class="warning-btn warning-btn-cancel" onclick="closeDuplicateWarning()">取消</button>
+    </div>
+  </div>
+</div>
+
+<script src="js/main.js"></script>
 
 <script>
-// 初始化變數
-let logs = [];
-let workers = [];
+
+// 使用建案隔離的數據存取方式
+let logs = getProjectData("logs");
+let workers = getProjectData("workers");
+
+// 顯示當前建案名稱
+document.getElementById("current-project-name").innerText = getCurrentProject();
+
+// 新增材料列表暫存
 let currentMaterials = [];
+// 儲存當前日期的出工紀錄
 let currentDateWorkers = [];
+// 當前正在編輯的日誌索引
 let currentEditingIndex = -1;
+// 當前篩選天數
 let currentFilterDays = 0;
+// 出工紀錄輔助工具顯示狀態
 let workerHelperVisible = true;
+// 存儲發現重複的日期索引
 let duplicateLogIndex = -1;
 
-// 頁面加載時初始化數據
-async function initData() {
-  // 正確處理 Promise - 獲取當前建案名稱
-  const projectName = await getCurrentProject();
-  document.getElementById("current-project-name").innerText = projectName;
-  
-  // 正確處理 Promise - 獲取日誌和工人數據
-  logs = await getProjectData("logs");
-  workers = await getProjectData("workers");
-  
-  // 渲染頁面
-  render();
+function save(){
+  saveProjectData("logs", logs);
 }
 
-async function save() {
-  // 正確處理 Promise - 保存數據
-  await saveProjectData("logs", logs);
-}
-
-function render() {
+function render(){
   // 根據當前篩選條件顯示日誌
   renderFilteredLogs();
   
@@ -387,8 +581,6 @@ function toggleWorkerHelper() {
 
 // 根據篩選條件渲染日誌
 function renderFilteredLogs() {
-  if (!logs || logs.length === 0) return;
-  
   let filteredLogs = logs;
   
   if (currentFilterDays > 0) {
@@ -504,9 +696,9 @@ function editDuplicateLog() {
 }
 
 // 根據選取的日期過濾出工紀錄
-async function updateWorkersByDate() {
+function updateWorkersByDate() {
   // 使用 getProjectData 獲取當前建案的工人記錄
-  workers = await getProjectData("workers");
+  workers = getProjectData("workers");
   
   let selectedDate = document.getElementById("date").value;
   
@@ -561,9 +753,9 @@ async function updateWorkersByDate() {
 }
 
 // 顯示所有出工紀錄
-async function renderAllWorkers() {
+function renderAllWorkers() {
   // 使用 getProjectData 獲取當前建案的工人記錄
-  workers = await getProjectData("workers");
+  workers = getProjectData("workers");
   
   let workers_html = "";
   
@@ -631,7 +823,7 @@ function closeEditLog() {
 }
 
 // 保存編輯的日誌
-async function saveEditLog() {
+function saveEditLog() {
   if (currentEditingIndex === -1) return;
   
   const newDate = document.getElementById("edit_date").value;
@@ -660,7 +852,7 @@ async function saveEditLog() {
   };
   
   // 保存並重新渲染
-  await save();
+  save();
   render();
   
   // 關閉模態框
@@ -826,7 +1018,7 @@ function removeMaterial(index) {
   renderMaterials();
 }
 
-async function addLog(){
+function addLog(){
   let log = {
     date: date.value,
     weather_am: weather_am.value,
@@ -850,7 +1042,7 @@ async function addLog(){
   };
 
   logs.push(log);
-  await save();
+  save();
   render();
   clearForm();
 }
@@ -875,9 +1067,9 @@ function clearForm(){
   document.getElementById("workers_summary").style.display = "none";
 }
 
-async function removeLog(i){
+function removeLog(i){
   logs.splice(i,1);
-  await save();
+  save();
   render();
 }
 
@@ -886,12 +1078,9 @@ async function generatePDF(){
   let doc = new jsPDF();
   let y = 20;
 
-  // 獲取當前建案名稱
-  const projectName = await getCurrentProject();
-
   // 添加建案名稱到PDF
   doc.setFontSize(14);
-  doc.text("建案: " + projectName, 20, y);
+  doc.text("建案: " + getCurrentProject(), 20, y);
   y += 10;
 
   doc.setFontSize(18);
@@ -959,7 +1148,7 @@ async function generatePDF(){
   doc.text("【預留欄位】將來會與其他系統連動", 20, y);
 
   // 加上建案名稱作為檔案名
-  doc.save(`施工日誌_${projectName}.pdf`);
+  doc.save(`施工日誌_${getCurrentProject()}.pdf`);
 }
 
 // 點擊模態框外關閉
@@ -990,8 +1179,9 @@ document.addEventListener('keydown', function(event) {
   }
 });
 
-// 頁面載入時執行初始化
-document.addEventListener('DOMContentLoaded', initData);
+// 頁面載入時執行渲染
+render();
+
 </script>
 
 </body>

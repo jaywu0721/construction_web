@@ -4,6 +4,15 @@
 <meta charset="UTF-8">
 <title>缺失管理</title>
 <link rel="stylesheet" href="css/style.css">
+<!-- Firebase SDK 引入 (使用兼容模式) -->
+<script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore-compat.js"></script>
+
+<!-- 引入 Firebase 配置檔案 -->
+<script src="js/firebase-config.js"></script>
+
+<!-- 引入主要JS檔案 -->
+<script src="js/main.js"></script>
 <style>
 .current-project {
   font-size: 18px;
@@ -165,7 +174,7 @@ textarea {
 
   <!-- 顯示當前建案 -->
   <div class="current-project">
-    當前建案: <span id="current-project-name"></span>
+    當建案: <span id="current-project-name">載入中...</span>
   </div>
 
   建案
@@ -239,25 +248,66 @@ textarea {
   <!-- 列印內容將由JavaScript動態生成 -->
 </div>
 
-<script src="js/main.js"></script>
-
 <script>
-// 使用建案隔離的數據存取方式
-let defects = getProjectData("defects") || [];
-// 使用相同的工項與公司數據
-let itemCompanyData = getProjectData("itemCompanyData") || [];
+// 初始化變數
+let defects = [];
+let itemCompanyData = [];
 let currentItemFilter = 'all';
 let currentStatusFilter = 'all';
 let editingDefectIndex = -1;
 let lastAddedIndex = -1; // 記錄最後添加的缺失索引，用於高亮顯示
+let currentProjectName = "載入中...";
 
-// 顯示當前建案名稱
-const currentProjectName = getCurrentProject();
-document.getElementById("current-project-name").innerText = currentProjectName;
-document.getElementById("project").value = currentProjectName;
+// 頁面加載時初始化數據
+async function initData() {
+  try {
+    // 獲取當前建案名稱
+    currentProjectName = await getCurrentProject();
+    document.getElementById("current-project-name").innerText = currentProjectName;
+    document.getElementById("project").value = currentProjectName;
+    
+    // 獲取缺失和工項數據
+    const defectsData = await getProjectData("defects");
+    const itemCompanyDataResult = await getProjectData("itemCompanyData");
+    
+    // 確保defects和itemCompanyData是數組
+    defects = Array.isArray(defectsData) ? defectsData : [];
+    itemCompanyData = Array.isArray(itemCompanyDataResult) ? itemCompanyDataResult : [];
+    
+    // 檢查並更新舊記錄，添加createdAt字段
+    if (defects.length > 0) {
+      defects.forEach(defect => {
+        if (!defect.createdAt) {
+          defect.createdAt = new Date().toISOString(); // 為舊記錄添加當前時間
+        }
+        // 確保photos字段存在
+        if (!defect.photos) {
+          defect.photos = defect.photo ? [defect.photo] : []; // 轉換舊的單一照片
+          delete defect.photo; // 刪除舊字段
+        }
+      });
+      
+      // 保存更新後的數據
+      await save();
+    }
+    
+    // 渲染頁面
+    render();
+  } catch (error) {
+    console.error("初始化數據失敗:", error);
+    showToast("載入數據失敗，請刷新頁面重試", "error");
+  }
+}
 
-function save(){
-  saveProjectData("defects", defects);
+async function save(){
+  try {
+    await saveProjectData("defects", defects);
+    return true;
+  } catch (error) {
+    console.error("保存數據失敗:", error);
+    showToast("保存失敗，請重試", "error");
+    return false;
+  }
 }
 
 // 日期格式化函數
@@ -434,7 +484,7 @@ function generateItemOptions(selectedItem) {
   let options = `<option value="" ${!selectedItem ? 'selected' : ''}>請選擇工項</option>`;
   
   // 從工項與公司管理中獲取工項
-  const uniqueItems = [...new Set(itemCompanyData.map(pair => pair.item))];
+  const uniqueItems = [...new Set(itemCompanyData.map(pair => pair.item || "").filter(Boolean))];
   
   uniqueItems.forEach(item => {
     options += `<option value="${item}" ${item === selectedItem ? 'selected' : ''}>${item}</option>`;
@@ -453,8 +503,8 @@ function updateFilterOptions() {
   let options = `<option value="all">全部工項</option>`;
   
   // 獲取所有不重複的工項 (從已有缺失記錄和工項管理中)
-  const itemsFromDefects = [...new Set(defects.map(d => d.item).filter(Boolean))];
-  const itemsFromManagement = [...new Set(itemCompanyData.map(pair => pair.item))];
+  const itemsFromDefects = [...new Set(defects.map(d => d.item || "").filter(Boolean))];
+  const itemsFromManagement = [...new Set(itemCompanyData.map(pair => (pair && pair.item) || "").filter(Boolean))];
   const allItems = [...new Set([...itemsFromDefects, ...itemsFromManagement])];
   
   allItems.forEach(item => {
@@ -479,7 +529,7 @@ function filterByStatus(status) {
 }
 
 // 切換缺失狀態
-function toggleStatus(index, statusType) {
+async function toggleStatus(index, statusType) {
   if (statusType === 'finished') {
     defects[index].finished = !defects[index].finished;
     showToast(`缺失已標記為 ${defects[index].finished ? '已完成' : '未完成'}`);
@@ -487,7 +537,7 @@ function toggleStatus(index, statusType) {
     defects[index].deduction = !defects[index].deduction;
     showToast(`缺失已標記為 ${defects[index].deduction ? '代工扣款' : '取消代工扣款'}`);
   }
-  save();
+  await save();
   render();
 }
 
@@ -582,7 +632,7 @@ async function saveDefectEdit(index) {
   
   editingDefectIndex = -1;
   lastAddedIndex = index; // 標記為最後更新的項目，用於高亮顯示
-  save();
+  await save();
   render();
   showToast('缺失記錄已更新成功！');
 }
@@ -639,7 +689,7 @@ async function addDefect(){
   
   defects.push(newDefect);
   lastAddedIndex = defects.length - 1; // 標記為最後新增的項目，用於高亮顯示
-  save();
+  await save();
   render();
   
   // 顯示成功提示
@@ -660,9 +710,9 @@ function resetForm() {
   document.getElementById("photo3").value = "";
 }
 
-function remove(i){
+async function remove(i){
   defects.splice(i,1);
-  save();
+  await save();
   render();
 }
 
@@ -741,27 +791,8 @@ function printDefects() {
   }, 100);
 }
 
-// 初始化頁面
-function initPage() {
-  // 檢查並更新舊記錄，添加createdAt字段
-  defects.forEach(defect => {
-    if (!defect.createdAt) {
-      defect.createdAt = new Date().toISOString(); // 為舊記錄添加當前時間
-    }
-    // 確保photos字段存在
-    if (!defect.photos) {
-      defect.photos = defect.photo ? [defect.photo] : []; // 轉換舊的單一照片
-      delete defect.photo; // 刪除舊字段
-    }
-  });
-  
-  save(); // 保存更新後的數據
-  render(); // 渲染頁面
-}
-
 // 頁面載入時初始化
-initPage();
-
+document.addEventListener('DOMContentLoaded', initData);
 </script>
 
 </body>
