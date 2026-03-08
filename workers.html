@@ -4,6 +4,58 @@
 <meta charset="UTF-8">
 <title>人員出工</title>
 <link rel="stylesheet" href="css/style.css">
+<style>
+  .container {
+    display: flex;
+    gap: 20px;
+  }
+  .main-content {
+    flex: 3;
+  }
+  .sidebar {
+    flex: 1;
+    padding: 20px;
+    background-color: #f5f5f5;
+    border-radius: 5px;
+    margin-top: 20px;
+  }
+  .sidebar h3 {
+    margin-top: 0;
+    border-bottom: 1px solid #ddd;
+    padding-bottom: 10px;
+  }
+  .item-company-pair {
+    margin-bottom: 10px;
+    padding: 5px;
+    background: #fff;
+    border-radius: 3px;
+    border: 1px solid #ddd;
+  }
+  .item-company-pair button {
+    margin-top: 5px;
+    padding: 2px 5px;
+    font-size: 12px;
+    margin-right: 5px;
+  }
+  select {
+    padding: 5px;
+    width: 200px;
+  }
+  .edit-form {
+    margin-top: 5px;
+    padding: 5px;
+    background-color: #f9f9f9;
+    border: 1px dashed #ccc;
+  }
+  .edit-form input {
+    width: 100%;
+    margin-bottom: 5px;
+    padding: 3px;
+  }
+  .edit-form button {
+    margin-right: 5px;
+  }
+</style>
 </head>
 
 <body>
@@ -16,42 +68,64 @@
   當前建案: <span id="current-project-name"></span>
 </div>
 
-日期
-<input type="date" id="date">
+<div class="container">
+  <div class="main-content">
+    日期
+    <input type="date" id="date">
 
-工種
-<input id="type" list="type-options" autocomplete="off">
-<datalist id="type-options"></datalist>
+    工項
+    <!-- 將input改為select，限制只能選擇，不能自由輸入 -->
+    <select id="type">
+      <option value="" disabled selected>請選擇工項</option>
+      <!-- 選項將由JavaScript動態生成 -->
+    </select>
 
-人數
-<input id="count">
+    人數
+    <input id="count">
 
-工作內容
-<input id="content" placeholder="請輸入工作內容...">
+    工作內容
+    <input id="content" placeholder="請輸入工作內容...">
 
-<button onclick="addWorker()">新增</button>
+    <button onclick="addWorker()">新增</button>
 
-<div style="margin-top: 20px; margin-bottom: 10px;">
-  <button onclick="filterRecords('all')">全部</button>
-  <button onclick="filterRecords('today')">今日</button>
-  <button onclick="filterRecords('14days')">14日</button>
+    <div style="margin-top: 20px; margin-bottom: 10px;">
+      <button onclick="filterRecords('all')">全部</button>
+      <button onclick="filterRecords('today')">今日</button>
+      <button onclick="filterRecords('14days')">14日</button>
+    </div>
+
+    <table>
+      <thead>
+      <tr>
+      <th>日期</th>
+      <th>工項</th>
+      <th>人數</th>
+      <th>工作內容</th>
+      <th>刪除</th>
+      </tr>
+      </thead>
+      <tbody id="list"></tbody>
+    </table>
+  </div>
+
+  <div class="sidebar">
+    <h3>工項與公司管理</h3>
+    
+    <div>
+      工項名稱
+      <input id="item-name" placeholder="輸入工項名稱">
+      
+      公司名稱
+      <input id="company-name" placeholder="輸入公司名稱">
+      
+      <button onclick="addItemCompany()">新增工項與公司</button>
+    </div>
+    
+    <div id="item-company-list" style="margin-top: 20px;">
+      <!-- 工項與公司列表將在這裡動態生成 -->
+    </div>
+  </div>
 </div>
-
-<table>
-
-<thead>
-<tr>
-<th>日期</th>
-<th>工種</th>
-<th>人數</th>
-<th>工作內容</th>
-<th>刪除</th>
-</tr>
-</thead>
-
-<tbody id="list"></tbody>
-
-</table>
 
 <script src="js/main.js"></script>
 
@@ -59,7 +133,11 @@
 // 使用建案隔離的數據存取方式
 let workers = getProjectData("workers");
 let workerTypes = getProjectData("workerTypes");
+// 新增工項和公司關聯數據
+let itemCompanyData = getProjectData("itemCompanyData") || [];
 let currentFilter = 'all';
+// 記錄當前正在編輯的工項索引
+let currentEditIndex = -1;
 
 // 顯示當前建案名稱
 document.getElementById("current-project-name").innerText = getCurrentProject();
@@ -67,6 +145,7 @@ document.getElementById("current-project-name").innerText = getCurrentProject();
 function save(){
   saveProjectData("workers", workers);
   saveProjectData("workerTypes", workerTypes);
+  saveProjectData("itemCompanyData", itemCompanyData);
 }
 
 function render(){
@@ -97,8 +176,155 @@ function render(){
 
   document.getElementById("list").innerHTML = html;
   
-  // 渲染工種下拉選單
+  // 渲染工項下拉選單
   renderTypeOptions();
+  
+  // 渲染工項與公司列表
+  renderItemCompanyList();
+}
+
+// 渲染工項與公司列表
+function renderItemCompanyList() {
+  let html = "";
+  
+  itemCompanyData.forEach((pair, index) => {
+    // 檢查當前索引是否為編輯狀態
+    if (index === currentEditIndex) {
+      html += `
+      <div class="item-company-pair">
+        <div class="edit-form">
+          <div>工項名稱:</div>
+          <input id="edit-item-${index}" value="${pair.item}">
+          <div>公司名稱:</div>
+          <input id="edit-company-${index}" value="${pair.company}">
+          <div>
+            <button onclick="saveEdit(${index})">保存</button>
+            <button onclick="cancelEdit()">取消</button>
+          </div>
+        </div>
+      </div>
+      `;
+    } else {
+      html += `
+      <div class="item-company-pair">
+        <div><strong>工項:</strong> ${pair.item}</div>
+        <div><strong>公司:</strong> ${pair.company}</div>
+        <div>
+          <button onclick="editItemCompany(${index})">編輯</button>
+          <button onclick="removeItemCompany(${index})">刪除</button>
+        </div>
+      </div>
+      `;
+    }
+  });
+  
+  document.getElementById("item-company-list").innerHTML = html;
+}
+
+// 新增工項與公司
+function addItemCompany() {
+  const itemName = document.getElementById("item-name").value.trim();
+  const companyName = document.getElementById("company-name").value.trim();
+  
+  if (!itemName || !companyName) {
+    alert("工項名稱和公司名稱都不能為空!");
+    return;
+  }
+  
+  // 檢查是否已存在相同的工項和公司組合
+  const exists = itemCompanyData.some(pair => 
+    pair.item === itemName && pair.company === companyName
+  );
+  
+  if (exists) {
+    alert("此工項與公司組合已存在!");
+    return;
+  }
+  
+  itemCompanyData.push({ item: itemName, company: companyName });
+  
+  save();
+  render();
+  
+  // 清空輸入欄位
+  document.getElementById("item-name").value = "";
+  document.getElementById("company-name").value = "";
+}
+
+// 開始編輯工項與公司
+function editItemCompany(index) {
+  currentEditIndex = index;
+  render();
+}
+
+// 取消編輯
+function cancelEdit() {
+  currentEditIndex = -1;
+  render();
+}
+
+// 保存編輯
+function saveEdit(index) {
+  const newItemName = document.getElementById(`edit-item-${index}`).value.trim();
+  const newCompanyName = document.getElementById(`edit-company-${index}`).value.trim();
+  
+  if (!newItemName || !newCompanyName) {
+    alert("工項名稱和公司名稱都不能為空!");
+    return;
+  }
+  
+  // 檢查是否與其他記錄重複
+  const isDuplicate = itemCompanyData.some((pair, idx) => 
+    idx !== index && pair.item === newItemName && pair.company === newCompanyName
+  );
+  
+  if (isDuplicate) {
+    alert("此工項與公司組合已存在!");
+    return;
+  }
+  
+  // 保存原始工項名稱，用於稍後更新相關記錄
+  const oldItemName = itemCompanyData[index].item;
+  
+  // 更新工項與公司數據
+  itemCompanyData[index] = { 
+    item: newItemName, 
+    company: newCompanyName 
+  };
+  
+  // 如果工項名稱已更改，需要更新相關記錄
+  if (oldItemName !== newItemName) {
+    // 更新workers記錄中的工項名稱
+    workers.forEach(worker => {
+      if (worker.type === oldItemName) {
+        worker.type = newItemName;
+      }
+    });
+    
+    // 更新workerTypes中的工項名稱
+    const oldTypeIndex = workerTypes.indexOf(oldItemName);
+    if (oldTypeIndex !== -1) {
+      workerTypes[oldTypeIndex] = newItemName;
+    } else {
+      // 如果不存在，添加新工項
+      workerTypes.push(newItemName);
+    }
+  }
+  
+  // 結束編輯狀態
+  currentEditIndex = -1;
+  
+  save();
+  render();
+}
+
+// 刪除工項與公司
+function removeItemCompany(index) {
+  if (confirm(`確定要刪除 "${itemCompanyData[index].item}" - "${itemCompanyData[index].company}" 這組工項與公司嗎？`)) {
+    itemCompanyData.splice(index, 1);
+    save();
+    render();
+  }
 }
 
 // 篩選記錄
@@ -138,34 +364,47 @@ function getFilteredWorkers() {
   return [...workers];
 }
 
-// 渲染工種選項
+// 渲染工項下拉選單 (修改為只顯示從工項與公司管理中建立的工項)
 function renderTypeOptions() {
-  let options = "";
+  let options = `<option value="" disabled selected>請選擇工項</option>`;
   
-  // 確保工種不重複
-  const uniqueTypes = [...new Set(workerTypes)];
+  // 只使用從工項管理中獲取的工項
+  const uniqueItems = [...new Set(itemCompanyData.map(pair => pair.item))];
   
-  uniqueTypes.forEach(type => {
-    options += `<option value="${type}"></option>`;
+  uniqueItems.forEach(item => {
+    options += `<option value="${item}">${item}</option>`;
   });
   
-  document.getElementById("type-options").innerHTML = options;
+  document.getElementById("type").innerHTML = options;
 }
 
 function addWorker(){
-  // 獲取工種值
-  const typeValue = document.getElementById("type").value.trim();
+  // 獲取工項值
+  const typeSelect = document.getElementById("type");
+  const typeValue = typeSelect.value;
   
-  // 如果是新的工種，則添加到工種記錄中
-  if(typeValue && !workerTypes.includes(typeValue)) {
-    workerTypes.push(typeValue);
+  // 驗證已選擇工項
+  if (!typeValue) {
+    alert("請從下拉選單中選擇工項");
+    return;
+  }
+  
+  // 驗證日期和人數
+  if (!date.value) {
+    alert("請輸入日期");
+    return;
+  }
+  
+  if (!count.value) {
+    alert("請輸入人數");
+    return;
   }
   
   workers.push({
     date: date.value,
     type: typeValue,
     count: count.value,
-    content: content.value // 新增工作內容
+    content: content.value // 工作內容
   });
 
   save();
@@ -173,7 +412,7 @@ function addWorker(){
   
   // 清空輸入欄位
   date.value = "";
-  document.getElementById("type").value = "";
+  typeSelect.selectedIndex = 0; // 重置選擇
   count.value = "";
   content.value = "";
 }

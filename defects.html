@@ -11,702 +11,757 @@
   margin-bottom: 20px;
   color: #3a7bd5;
 }
-
-/* 圖片預覽樣式 */
-.preview-container {
-  margin: 10px 0;
-  position: relative;
+.filter-section {
+  margin: 20px 0;
+  padding: 10px;
+  background-color: #f5f5f5;
+  border-radius: 5px;
 }
-
-.preview-image {
-  max-width: 200px;
-  max-height: 150px;
-  border-radius: 4px;
+select {
+  padding: 5px;
+  width: 200px;
 }
-
-.remove-preview {
-  position: absolute;
-  top: -5px;
-  right: -5px;
-  background: rgba(255, 0, 0, 0.7);
-  color: white;
-  width: 20px;
-  height: 20px;
-  text-align: center;
-  line-height: 20px;
-  border-radius: 50%;
-  cursor: pointer;
+.filter-buttons {
+  margin: 15px 0;
+  display: flex;
+  gap: 10px;
 }
-
-/* 缺失狀態樣式 */
-.status-badge {
-  display: inline-block;
-  padding: 4px 8px;
-  border-radius: 4px;
-  color: white;
+.filter-buttons button {
+  padding: 5px 10px;
+}
+.photo-section {
+  margin: 15px 0;
+}
+.photo-uploads {
+  display: flex;
+  gap: 10px;
+  margin-top: 5px;
+}
+.status-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.status-cell button {
   font-size: 12px;
+  padding: 2px 5px;
+  margin-top: 3px;
+}
+.img-preview {
+  max-width: 100px;
+  max-height: 100px;
+  object-fit: contain;
   margin-right: 5px;
 }
-
-.status-pending {
-  background-color: #f39c12;
+textarea {
+  min-height: 60px;
+  width: 300px;
 }
-
-.status-completed {
-  background-color: #2ecc71;
-}
-
-.status-deduction {
-  background-color: #e74c3c;
-}
-
-/* 編輯模態框樣式 */
-.edit-modal {
-  display: none;
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background-color: rgba(0,0,0,0.7);
-  z-index: 1000;
-  overflow: auto; /* 允許整個模態框區域滾動 */
-}
-
-.edit-modal-content {
-  background-color: white;
-  margin: 30px auto; /* 增加上下間距 */
-  padding: 20px;
-  width: 90%;
-  max-width: 600px;
-  border-radius: 8px;
-  max-height: 80vh; /* 減小最大高度 */
-  overflow-y: auto; /* 確保內容可以滾動 */
-  position: relative; /* 確保定位正確 */
-}
-
-.close-btn {
-  float: right;
-  font-size: 24px;
-  font-weight: bold;
-  cursor: pointer;
-  position: sticky; /* 使關閉按鈕固定在頂部 */
-  top: 0;
-  background-color: white;
-  padding: 5px;
-  z-index: 10;
-}
-
-.edit-form-group {
-  margin-bottom: 15px;
-}
-
-.edit-form-label {
-  display: block;
-  font-weight: bold;
-  margin-bottom: 5px;
-}
-
-.edit-form-input {
-  width: 100%;
-  padding: 8px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-}
-
-.edit-form-textarea {
-  width: 100%;
-  padding: 8px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  min-height: 80px;
-}
-
-.edit-form-actions {
-  display: flex;
-  justify-content: space-between;
-  margin-top: 20px;
-  position: sticky; /* 使按鈕區域固定在底部 */
-  bottom: 0;
-  background-color: white;
-  padding: 10px 0;
-}
-
-.edit-form-actions button {
-  margin-right: 10px;
-}
-
-.deduction-container {
-  display: flex;
-  align-items: center;
-  margin-top: 8px;
-}
-
-.deduction-container input {
-  width: 100px;
-  margin-left: 10px;
-}
-
-/* 篩選按鈕樣式 */
-.filter-container {
-  margin: 20px 0;
-  text-align: right;
-}
-
-.filter-btn {
-  margin-left: 8px;
-  padding: 6px 12px;
-  background-color: #f0f0f0;
-  color: #333;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-  cursor: pointer;
-}
-
-.filter-btn.active {
-  background-color: #2d7ff9;
+.print-button {
+  background-color: #4CAF50;
   color: white;
-  border-color: #2d7ff9;
-}
-
-/* 縮略圖樣式 */
-.defect-thumbnail {
-  width: 60px;
-  height: 60px;
-  object-fit: cover;
+  padding: 8px 16px;
+  border: none;
   border-radius: 4px;
   cursor: pointer;
+  font-size: 16px;
+  margin-left: 20px;
 }
-
-/* 圖片查看器樣式 */
-.image-viewer {
-  display: none; /* 初始狀態為隱藏 */
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background-color: rgba(0,0,0,0.9);
-  z-index: 2000;
-  align-items: center;
-  justify-content: center;
+.print-button:hover {
+  background-color: #45a049;
 }
-
-/* 當顯示圖片查看器時應用此樣式 */
-.image-viewer.active {
+.photos-gallery {
   display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
 }
-
-.image-viewer-content {
-  max-width: 90%;
-  max-height: 90%;
+/* 新增的樣式 */
+.highlight-row {
+  background-color: #ffff99;
+  animation: highlight-fade 3s ease-in-out;
 }
-
-.image-viewer img {
-  max-width: 100%;
-  max-height: 100%;
+@keyframes highlight-fade {
+  0% { background-color: #ffff99; }
+  100% { background-color: transparent; }
 }
-
-.close-viewer {
-  position: absolute;
+.toast-message {
+  position: fixed;
   top: 20px;
   right: 20px;
+  background-color: #4CAF50;
   color: white;
-  font-size: 30px;
-  cursor: pointer;
+  padding: 15px 20px;
+  border-radius: 5px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+  z-index: 1000;
+  transition: opacity 0.5s, transform 0.5s;
+  opacity: 0;
+  transform: translateY(-20px);
+}
+.toast-message.show {
+  opacity: 1;
+  transform: translateY(0);
+}
+.toast-message.success {
+  background-color: #4CAF50;
+}
+.toast-message.error {
+  background-color: #f44336;
 }
 
-/* 響應式表格樣式 */
-@media (max-width: 768px) {
-  table, thead, tbody, th, td, tr {
-    display: block;
+/* 列印樣式 */
+@media print {
+  body {
+    margin: 0;
+    padding: 0;
+    background-color: white;
   }
   
-  thead tr {
-    position: absolute;
-    top: -9999px;
-    left: -9999px;
+  .no-print {
+    display: none !important;
   }
   
-  tr {
-    margin-bottom: 15px;
+  .print-header {
+    text-align: center;
+    font-size: 24px;
+    margin-bottom: 20px;
+  }
+  
+  table.print-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  
+  table.print-table th, 
+  table.print-table td {
     border: 1px solid #ddd;
+    padding: 8px;
+    text-align: left;
   }
   
-  td {
-    border: none;
-    border-bottom: 1px solid #eee;
-    position: relative;
-    padding-left: 50%;
+  .print-photos img {
+    width: 180px;
+    height: 180px;
+    object-fit: contain;
+    margin: 5px;
   }
   
-  td:before {
-    position: absolute;
-    top: 6px;
-    left: 6px;
-    width: 45%;
-    padding-right: 10px;
-    white-space: nowrap;
-    font-weight: bold;
+  @page {
+    size: landscape;
   }
-  
-  td:nth-of-type(1):before { content: "建案"; }
-  td:nth-of-type(2):before { content: "棟別"; }
-  td:nth-of-type(3):before { content: "樓層"; }
-  td:nth-of-type(4):before { content: "工項"; }
-  td:nth-of-type(5):before { content: "描述"; }
-  td:nth-of-type(6):before { content: "狀態"; }
-  td:nth-of-type(7):before { content: "照片"; }
-  td:nth-of-type(8):before { content: "操作"; }
 }
 </style>
 </head>
 
 <body>
 
-<button onclick="go('index.html')">回首頁</button>
+<div class="no-print">
+  <!-- 提示消息容器 -->
+  <div id="toast-message" class="toast-message"></div>
 
-<h2>缺失管理</h2>
+  <button onclick="go('index.html')">回首頁</button>
 
-<!-- 顯示當前建案 -->
-<div class="current-project">
-  當前建案: <span id="current-project-name"></span>
-</div>
+  <h2>缺失管理</h2>
 
-<div class="input-form">
-  <div>
-    建案
-    <input id="project" disabled>
+  <!-- 顯示當前建案 -->
+  <div class="current-project">
+    當前建案: <span id="current-project-name"></span>
   </div>
-  
-  <div>
-    棟別
-    <input id="building">
-  </div>
-  
-  <div>
-    樓層
-    <input id="floor">
-  </div>
-  
-  <div>
-    工項
-    <input id="item">
-  </div>
-  
-  <div>
-    缺失描述
-    <textarea id="desc"></textarea>
-  </div>
-  
-  <div>
-    照片
-    <input type="file" id="photo" accept="image/*" capture="environment" onchange="previewImage(this)">
-    <div id="preview-container" class="preview-container" style="display: none;">
-      <img id="preview-image" class="preview-image">
-      <span class="remove-preview" onclick="removePreview()">×</span>
+
+  建案
+  <input id="project" disabled>
+
+  棟別
+  <input id="building">
+
+  樓層
+  <input id="floor">
+
+  工項
+  <select id="item">
+    <option value="" disabled selected>請選擇工項</option>
+    <!-- 選項將由JavaScript動態生成 -->
+  </select>
+
+  缺失描述
+  <textarea id="desc"></textarea>
+
+  <!-- 新增照片上傳功能 (最多三張) -->
+  <div class="photo-section">
+    照片上傳 (最多三張)
+    <div class="photo-uploads">
+      <input type="file" id="photo1" accept="image/*">
+      <input type="file" id="photo2" accept="image/*">
+      <input type="file" id="photo3" accept="image/*">
     </div>
   </div>
-  
+
   <button onclick="addDefect()">新增</button>
-</div>
 
-<!-- 篩選按鈕 -->
-<div class="filter-container">
-  <button id="filter-all" class="filter-btn active" onclick="filterDefects('all')">全部</button>
-  <button id="filter-pending" class="filter-btn" onclick="filterDefects('pending')">未完成</button>
-  <button id="filter-completed" class="filter-btn" onclick="filterDefects('completed')">已完成</button>
-  <button id="filter-deduction" class="filter-btn" onclick="filterDefects('deduction')">代工扣款</button>
-</div>
-
-<table>
-
-<thead>
-<tr>
-<th>建案</th>
-<th>棟別</th>
-<th>樓層</th>
-<th>工項</th>
-<th>描述</th>
-<th>狀態</th>
-<th>照片</th>
-<th>操作</th>
-</tr>
-</thead>
-
-<tbody id="list"></tbody>
-
-</table>
-
-<!-- 編輯模態框 -->
-<div id="editModal" class="edit-modal">
-  <div class="edit-modal-content">
-    <span class="close-btn" onclick="closeEditModal()">&times;</span>
-    <h3>編輯缺失記錄</h3>
+  <!-- 篩選區域 -->
+  <div class="filter-section">
+    <h3>篩選缺失</h3>
     
-    <div class="edit-form-group">
-      <label class="edit-form-label">棟別</label>
-      <input id="edit-building" class="edit-form-input">
+    <div class="filter-buttons">
+      <button onclick="filterByStatus('all')">全部</button>
+      <button onclick="filterByStatus('unfinished')">未完成</button>
+      <button onclick="filterByStatus('deduction')">代工扣款</button>
+      <button class="print-button" onclick="printDefects()">列印篩選結果</button>
     </div>
     
-    <div class="edit-form-group">
-      <label class="edit-form-label">樓層</label>
-      <input id="edit-floor" class="edit-form-input">
-    </div>
-    
-    <div class="edit-form-group">
-      <label class="edit-form-label">工項</label>
-      <input id="edit-item" class="edit-form-input">
-    </div>
-    
-    <div class="edit-form-group">
-      <label class="edit-form-label">缺失描述</label>
-      <textarea id="edit-desc" class="edit-form-textarea"></textarea>
-    </div>
-    
-    <div class="edit-form-group">
-      <label class="edit-form-label">照片</label>
-      <div id="edit-photo-container"></div>
-      <input type="file" id="edit-photo" accept="image/*" capture="environment" onchange="previewEditImage(this)">
-      <div id="edit-preview-container" class="preview-container" style="display: none;">
-        <img id="edit-preview-image" class="preview-image">
-        <span class="remove-preview" onclick="removeEditPreview()">×</span>
-      </div>
-    </div>
-    
-    <div class="edit-form-group">
-      <label class="edit-form-label">狀態</label>
-      <select id="edit-status" class="edit-form-input" onchange="toggleDeductionInput()">
-        <option value="pending">未完成</option>
-        <option value="completed">已完成</option>
-        <option value="deduction">代工扣款</option>
-      </select>
-      
-      <div id="deduction-container" class="deduction-container" style="display: none;">
-        <label>扣工數量:</label>
-        <input type="number" id="edit-deduction" class="edit-form-input" min="0" step="0.1">
-      </div>
-    </div>
-    
-    <div class="edit-form-actions">
-      <div>
-        <button onclick="saveEdit()">保存</button>
-        <button onclick="closeEditModal()">取消</button>
-      </div>
-      <button onclick="deleteDefect()" style="background-color: #e74c3c;">刪除</button>
-    </div>
+    工項篩選:
+    <select id="item-filter" onchange="filterByItem()">
+      <option value="all">全部工項</option>
+      <!-- 工項選項將透過JavaScript動態生成 -->
+    </select>
   </div>
+
+  <table>
+  <thead>
+  <tr>
+  <th>日期</th>
+  <th>棟別</th>
+  <th>樓層</th>
+  <th>工項</th>
+  <th>描述</th>
+  <th>照片</th>
+  <th>狀態</th>
+  <th>操作</th>
+  </tr>
+  </thead>
+
+  <tbody id="list"></tbody>
+  </table>
 </div>
 
-<!-- 圖片查看器 -->
-<div id="imageViewer" class="image-viewer">
-  <span class="close-viewer" onclick="closeImageViewer()">&times;</span>
-  <div class="image-viewer-content">
-    <img id="fullImage">
-  </div>
+<!-- 列印區域 (正常不顯示，只在列印時使用) -->
+<div id="print-area" style="display: none;">
+  <!-- 列印內容將由JavaScript動態生成 -->
 </div>
 
 <script src="js/main.js"></script>
 
 <script>
-
 // 使用建案隔離的數據存取方式
-let defects = getProjectData("defects");
+let defects = getProjectData("defects") || [];
+// 使用相同的工項與公司數據
+let itemCompanyData = getProjectData("itemCompanyData") || [];
+let currentItemFilter = 'all';
+let currentStatusFilter = 'all';
+let editingDefectIndex = -1;
+let lastAddedIndex = -1; // 記錄最後添加的缺失索引，用於高亮顯示
 
 // 顯示當前建案名稱
 const currentProjectName = getCurrentProject();
 document.getElementById("current-project-name").innerText = currentProjectName;
 document.getElementById("project").value = currentProjectName;
 
-// 當前選中的編輯索引
-let currentEditIndex = -1;
-// 當前篩選狀態
-let currentFilter = 'all';
-// 存儲圖片的臨時變數
-let tempImage = null;
-let tempEditImage = null;
-
 function save(){
   saveProjectData("defects", defects);
 }
 
-// 渲染所有缺失記錄
+// 日期格式化函數
+function formatDate(date) {
+  const d = new Date(date);
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  const hours = String(d.getHours()).padStart(2, '0');
+  const minutes = String(d.getMinutes()).padStart(2, '0');
+  
+  return `${year}-${month}-${day} ${hours}:${minutes}`;
+}
+
 function render(){
   let html = "";
-  
-  // 篩選記錄
-  const filteredDefects = defects.filter(defect => {
-    if (currentFilter === 'all') return true;
-    if (currentFilter === 'pending' && (!defect.status || defect.status === 'pending')) return true;
-    if (currentFilter === 'completed' && defect.status === 'completed') return true;
-    if (currentFilter === 'deduction' && defect.status === 'deduction') return true;
-    return false;
-  });
+
+  // 根據篩選條件過濾數據
+  let filteredDefects = getFilteredDefects();
 
   filteredDefects.forEach((d, i) => {
-    // 找到原始索引，確保編輯和刪除功能正確
+    // 找到在原始數組中的索引，確保操作功能正確
     const originalIndex = defects.indexOf(d);
     
-    // 根據狀態設置樣式
-    let statusBadge = '';
-    if (!d.status || d.status === 'pending') {
-      statusBadge = '<span class="status-badge status-pending">未完成</span>';
-    } else if (d.status === 'completed') {
-      statusBadge = '<span class="status-badge status-completed">已完成</span>';
-    } else if (d.status === 'deduction') {
-      statusBadge = `<span class="status-badge status-deduction">代工扣款 ${d.deduction || 0}</span>`;
-    }
+    // 處理日期顯示
+    const dateDisplay = d.createdAt ? formatDate(d.createdAt) : '未記錄';
     
-    // 照片顯示
-    let photoHtml = '';
-    if (d.photo) {
-      photoHtml = `<img src="${d.photo}" class="defect-thumbnail" onclick="showFullImage('${d.photo}')">`;
+    // 檢查是否為最後新增的記錄，如果是則添加高亮類
+    const highlightClass = (originalIndex === lastAddedIndex) ? 'highlight-row' : '';
+    
+    if (originalIndex === editingDefectIndex) {
+      // 編輯模式
+      html += `
+      <tr class="${highlightClass}">
+        <td>${dateDisplay}</td>
+        <td><input id="edit-building" value="${d.building || ''}"></td>
+        <td><input id="edit-floor" value="${d.floor || ''}"></td>
+        <td>
+          <select id="edit-item">
+            ${generateItemOptions(d.item)}
+          </select>
+        </td>
+        <td><textarea id="edit-desc">${d.desc || ''}</textarea></td>
+        <td>
+          <div class="photos-gallery">
+            ${renderPhotoThumbnails(d.photos)}
+          </div>
+          <div class="photo-uploads">
+            <input type="file" id="edit-photo1" accept="image/*">
+            <input type="file" id="edit-photo2" accept="image/*">
+            <input type="file" id="edit-photo3" accept="image/*">
+          </div>
+        </td>
+        <td>
+          <label>
+            <input type="checkbox" id="edit-finished" ${d.finished ? 'checked' : ''}>
+            已完成
+          </label>
+          <br>
+          <label>
+            <input type="checkbox" id="edit-deduction" ${d.deduction ? 'checked' : ''}>
+            代工扣款
+          </label>
+        </td>
+        <td>
+          <button onclick="saveDefectEdit(${originalIndex})">保存</button>
+          <button onclick="cancelEdit()">取消</button>
+        </td>
+      </tr>
+      `;
     } else {
-      photoHtml = '<span>無照片</span>';
+      // 顯示模式
+      const statusText = [];
+      if (d.finished) statusText.push('已完成');
+      if (d.deduction) statusText.push('代工扣款');
+      
+      html += `
+      <tr class="${highlightClass}" id="defect-row-${originalIndex}">
+        <td>${dateDisplay}</td>
+        <td>${d.building || ''}</td>
+        <td>${d.floor || ''}</td>
+        <td>${d.item || ''}</td>
+        <td>${d.desc || ''}</td>
+        <td>
+          <div class="photos-gallery">
+            ${renderPhotoThumbnails(d.photos)}
+          </div>
+        </td>
+        <td class="status-cell">
+          <div>${statusText.join(', ') || '未完成'}</div>
+          <button onclick="toggleStatus(${originalIndex}, 'finished')">${d.finished ? '標記未完成' : '標記完成'}</button>
+          <button onclick="toggleStatus(${originalIndex}, 'deduction')">${d.deduction ? '取消扣款' : '標記扣款'}</button>
+        </td>
+        <td>
+          <button onclick="editDefect(${originalIndex})">編輯</button>
+          <button onclick="confirmRemove(${originalIndex})">刪除</button>
+        </td>
+      </tr>
+      `;
     }
-    
-    html += `
-    <tr>
-      <td>${d.project}</td>
-      <td>${d.building || ''}</td>
-      <td>${d.floor || ''}</td>
-      <td>${d.item || ''}</td>
-      <td>${d.desc || ''}</td>
-      <td>${statusBadge}</td>
-      <td>${photoHtml}</td>
-      <td>
-        <button onclick="editDefect(${originalIndex})">編輯</button>
-      </td>
-    </tr>
-    `;
   });
 
   document.getElementById("list").innerHTML = html;
-}
-
-// 預覽圖片
-function previewImage(input) {
-  const file = input.files[0];
-  if (!file) return;
-
-  const reader = new FileReader();
-  reader.onload = function(e) {
-    tempImage = e.target.result;
-    document.getElementById("preview-image").src = tempImage;
-    document.getElementById("preview-container").style.display = "block";
-  };
-  reader.readAsDataURL(file);
-}
-
-// 移除預覽圖片
-function removePreview() {
-  document.getElementById("preview-container").style.display = "none";
-  document.getElementById("photo").value = "";
-  tempImage = null;
-}
-
-// 預覽編輯時的圖片
-function previewEditImage(input) {
-  const file = input.files[0];
-  if (!file) return;
-
-  const reader = new FileReader();
-  reader.onload = function(e) {
-    tempEditImage = e.target.result;
-    document.getElementById("edit-preview-image").src = tempEditImage;
-    document.getElementById("edit-preview-container").style.display = "block";
-  };
-  reader.readAsDataURL(file);
-}
-
-// 移除編輯預覽圖片
-function removeEditPreview() {
-  document.getElementById("edit-preview-container").style.display = "none";
-  document.getElementById("edit-photo").value = "";
-  tempEditImage = null;
-}
-
-// 切換扣款輸入框顯示
-function toggleDeductionInput() {
-  const status = document.getElementById("edit-status").value;
-  document.getElementById("deduction-container").style.display = 
-    status === 'deduction' ? 'flex' : 'none';
-}
-
-// 顯示完整圖片
-function showFullImage(src) {
-  document.getElementById("fullImage").src = src;
-  document.getElementById("imageViewer").classList.add("active");
-}
-
-// 關閉圖片查看器
-function closeImageViewer() {
-  document.getElementById("imageViewer").classList.remove("active");
-}
-
-// 篩選缺失記錄
-function filterDefects(filter) {
-  currentFilter = filter;
   
-  // 更新按鈕狀態
-  document.querySelectorAll('.filter-btn').forEach(btn => {
-    btn.classList.remove('active');
+  // 如果有新增的記錄，滾動到該記錄
+  if (lastAddedIndex !== -1) {
+    const newRow = document.getElementById(`defect-row-${lastAddedIndex}`);
+    if (newRow) {
+      setTimeout(() => {
+        newRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        // 5秒後重置高亮效果
+        setTimeout(() => {
+          lastAddedIndex = -1;
+          render();
+        }, 5000);
+      }, 100);
+    }
+  }
+  
+  // 更新工項選項
+  updateItemOptions();
+  
+  // 更新篩選選項
+  updateFilterOptions();
+}
+
+// 顯示提示消息
+function showToast(message, type = 'success') {
+  const toast = document.getElementById('toast-message');
+  toast.innerText = message;
+  toast.className = `toast-message ${type} show`;
+  
+  // 3秒後自動隱藏
+  setTimeout(() => {
+    toast.classList.remove('show');
+  }, 3000);
+}
+
+// 渲染照片縮略圖
+function renderPhotoThumbnails(photos) {
+  if (!photos || photos.length === 0) return '無照片';
+  
+  let html = '';
+  photos.forEach(photo => {
+    if (photo) {
+      html += `<img src="${photo}" class="img-preview">`;
+    }
   });
-  document.getElementById(`filter-${filter}`).classList.add('active');
   
+  return html || '無照片';
+}
+
+// 獲取篩選後的缺失記錄
+function getFilteredDefects() {
+  let filteredDefects = [...defects];
+  
+  // 工項篩選
+  if (currentItemFilter !== 'all') {
+    filteredDefects = filteredDefects.filter(d => d.item === currentItemFilter);
+  }
+  
+  // 狀態篩選
+  if (currentStatusFilter === 'unfinished') {
+    filteredDefects = filteredDefects.filter(d => !d.finished);
+  } else if (currentStatusFilter === 'deduction') {
+    filteredDefects = filteredDefects.filter(d => d.deduction);
+  }
+  
+  return filteredDefects;
+}
+
+// 生成工項選項，並設置選中項
+function generateItemOptions(selectedItem) {
+  let options = `<option value="" ${!selectedItem ? 'selected' : ''}>請選擇工項</option>`;
+  
+  // 從工項與公司管理中獲取工項
+  const uniqueItems = [...new Set(itemCompanyData.map(pair => pair.item))];
+  
+  uniqueItems.forEach(item => {
+    options += `<option value="${item}" ${item === selectedItem ? 'selected' : ''}>${item}</option>`;
+  });
+  
+  return options;
+}
+
+// 更新工項下拉選單
+function updateItemOptions() {
+  document.getElementById("item").innerHTML = generateItemOptions();
+}
+
+// 更新篩選下拉選單
+function updateFilterOptions() {
+  let options = `<option value="all">全部工項</option>`;
+  
+  // 獲取所有不重複的工項 (從已有缺失記錄和工項管理中)
+  const itemsFromDefects = [...new Set(defects.map(d => d.item).filter(Boolean))];
+  const itemsFromManagement = [...new Set(itemCompanyData.map(pair => pair.item))];
+  const allItems = [...new Set([...itemsFromDefects, ...itemsFromManagement])];
+  
+  allItems.forEach(item => {
+    if (item) { // 確保工項不是空值
+      options += `<option value="${item}" ${currentItemFilter === item ? 'selected' : ''}>${item}</option>`;
+    }
+  });
+  
+  document.getElementById("item-filter").innerHTML = options;
+}
+
+// 根據工項篩選
+function filterByItem() {
+  currentItemFilter = document.getElementById("item-filter").value;
   render();
 }
 
-// 添加缺失記錄
-function addDefect(){
-  // 檢查必要欄位
-  if (!building.value || !floor.value || !item.value || !desc.value) {
-    alert("請填寫所有必填欄位");
+// 根據狀態篩選
+function filterByStatus(status) {
+  currentStatusFilter = status;
+  render();
+}
+
+// 切換缺失狀態
+function toggleStatus(index, statusType) {
+  if (statusType === 'finished') {
+    defects[index].finished = !defects[index].finished;
+    showToast(`缺失已標記為 ${defects[index].finished ? '已完成' : '未完成'}`);
+  } else if (statusType === 'deduction') {
+    defects[index].deduction = !defects[index].deduction;
+    showToast(`缺失已標記為 ${defects[index].deduction ? '代工扣款' : '取消代工扣款'}`);
+  }
+  save();
+  render();
+}
+
+// 開始編輯缺失記錄
+function editDefect(index) {
+  editingDefectIndex = index;
+  render();
+}
+
+// 取消編輯
+function cancelEdit() {
+  editingDefectIndex = -1;
+  render();
+  showToast('已取消編輯', 'error');
+}
+
+// 讀取照片文件並轉換為Base64
+function readPhotoFile(file) {
+  return new Promise((resolve) => {
+    if (!file) {
+      resolve(null);
+      return;
+    }
+    
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      resolve(e.target.result);
+    };
+    reader.onerror = function() {
+      resolve(null);
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+// 保存編輯後的缺失記錄
+async function saveDefectEdit(index) {
+  const editBuilding = document.getElementById('edit-building').value;
+  const editFloor = document.getElementById('edit-floor').value;
+  const editItem = document.getElementById('edit-item').value;
+  const editDesc = document.getElementById('edit-desc').value;
+  const editFinished = document.getElementById('edit-finished').checked;
+  const editDeduction = document.getElementById('edit-deduction').checked;
+  
+  // 驗證基本字段
+  if (!editFloor || !editItem) {
+    alert("樓層和工項為必填項");
     return;
   }
+  
+  // 處理照片上傳
+  const photoInputs = [
+    document.getElementById('edit-photo1'),
+    document.getElementById('edit-photo2'),
+    document.getElementById('edit-photo3')
+  ];
+  
+  // 保留現有照片
+  let updatedPhotos = defects[index].photos || [];
+  
+  // 處理新上傳的照片
+  for (let i = 0; i < photoInputs.length; i++) {
+    if (photoInputs[i].files && photoInputs[i].files[0]) {
+      const photoBase64 = await readPhotoFile(photoInputs[i].files[0]);
+      if (photoBase64) {
+        // 如果現有照片數組已有此索引的照片，替換它
+        if (i < updatedPhotos.length) {
+          updatedPhotos[i] = photoBase64;
+        } else {
+          // 否則添加新照片
+          updatedPhotos.push(photoBase64);
+        }
+      }
+    }
+  }
+  
+  // 確保照片數量不超過3張
+  updatedPhotos = updatedPhotos.slice(0, 3);
+  
+  // 更新缺失記錄
+  defects[index] = {
+    ...defects[index],
+    project: currentProjectName, // 確保project欄位存在，用於向後兼容
+    building: editBuilding,
+    floor: editFloor,
+    item: editItem,
+    desc: editDesc,
+    photos: updatedPhotos,
+    finished: editFinished,
+    deduction: editDeduction
+  };
+  
+  editingDefectIndex = -1;
+  lastAddedIndex = index; // 標記為最後更新的項目，用於高亮顯示
+  save();
+  render();
+  showToast('缺失記錄已更新成功！');
+}
 
-  defects.push({
+// 刪除前確認
+function confirmRemove(index) {
+  if (confirm("確定要刪除此缺失記錄嗎？此操作無法撤銷。")) {
+    remove(index);
+    showToast('缺失記錄已刪除！', 'error');
+  }
+}
+
+// 新增缺失記錄
+async function addDefect(){
+  const itemValue = document.getElementById("item").value;
+  
+  // 驗證必要欄位 (樓層和工項為必填)
+  if (!floor.value || !itemValue) {
+    alert("樓層和工項為必填項");
+    return;
+  }
+  
+  // 處理照片上傳
+  const photoInputs = [
+    document.getElementById('photo1'),
+    document.getElementById('photo2'),
+    document.getElementById('photo3')
+  ];
+  
+  const photos = [];
+  
+  // 讀取每個照片文件
+  for (const photoInput of photoInputs) {
+    if (photoInput.files && photoInput.files[0]) {
+      const photoBase64 = await readPhotoFile(photoInput.files[0]);
+      if (photoBase64) {
+        photos.push(photoBase64);
+      }
+    }
+  }
+  
+  // 創建新的缺失記錄，自動加入當前時間
+  const newDefect = {
     project: currentProjectName,
     building: building.value,
     floor: floor.value,
-    item: item.value,
+    item: itemValue,
     desc: desc.value,
-    photo: tempImage,
-    status: 'pending',  // 默認未完成
-    timestamp: new Date().toISOString()  // 添加時間戳記錄
-  });
-
+    photos: photos,
+    finished: false,
+    deduction: false,
+    createdAt: new Date().toISOString() // 記錄創建時間
+  };
+  
+  defects.push(newDefect);
+  lastAddedIndex = defects.length - 1; // 標記為最後新增的項目，用於高亮顯示
   save();
   render();
   
+  // 顯示成功提示
+  showToast('缺失記錄已成功新增！');
+  
   // 清空輸入欄位
+  resetForm();
+}
+
+// 重置表單
+function resetForm() {
   building.value = "";
   floor.value = "";
-  item.value = "";
+  document.getElementById("item").selectedIndex = 0;
   desc.value = "";
-  removePreview();
+  document.getElementById("photo1").value = "";
+  document.getElementById("photo2").value = "";
+  document.getElementById("photo3").value = "";
 }
 
-// 編輯缺失記錄
-function editDefect(index) {
-  const defect = defects[index];
-  if (!defect) return;
-  
-  // 設置當前編輯索引
-  currentEditIndex = index;
-  
-  // 填充表單數據
-  document.getElementById("edit-building").value = defect.building || '';
-  document.getElementById("edit-floor").value = defect.floor || '';
-  document.getElementById("edit-item").value = defect.item || '';
-  document.getElementById("edit-desc").value = defect.desc || '';
-  document.getElementById("edit-status").value = defect.status || 'pending';
-  document.getElementById("edit-deduction").value = defect.deduction || '0';
-  
-  // 顯示扣款輸入框（如果適用）
-  toggleDeductionInput();
-  
-  // 顯示圖片（如果有）
-  const photoContainer = document.getElementById("edit-photo-container");
-  if (defect.photo) {
-    photoContainer.innerHTML = `
-      <div style="margin-bottom: 10px;">
-        <img src="${defect.photo}" style="max-width: 200px; max-height: 150px;">
-      </div>
-    `;
-  } else {
-    photoContainer.innerHTML = '<p>無照片</p>';
-  }
-  
-  // 重置臨時編輯圖片
-  tempEditImage = null;
-  document.getElementById("edit-preview-container").style.display = "none";
-  
-  // 顯示模態框
-  document.getElementById("editModal").style.display = "block";
+function remove(i){
+  defects.splice(i,1);
+  save();
+  render();
 }
 
-// 關閉編輯模態框
-function closeEditModal() {
-  document.getElementById("editModal").style.display = "none";
-  currentEditIndex = -1;
-}
-
-// 保存編輯內容
-function saveEdit() {
-  if (currentEditIndex < 0) return;
+// 列印篩選結果
+function printDefects() {
+  // 獲取篩選後的記錄
+  const filteredDefects = getFilteredDefects();
   
-  // 檢查必要欄位
-  if (!document.getElementById("edit-building").value || 
-      !document.getElementById("edit-floor").value || 
-      !document.getElementById("edit-item").value || 
-      !document.getElementById("edit-desc").value) {
-    alert("請填寫所有必填欄位");
+  if (filteredDefects.length === 0) {
+    showToast('沒有符合條件的記錄可供列印', 'error');
     return;
   }
   
-  // 獲取當前狀態
-  const status = document.getElementById("edit-status").value;
+  // 創建列印頁面內容
+  let printContent = `
+    <div class="print-header">
+      <h2>${currentProjectName} - 缺失管理報表</h2>
+      <p>列印日期: ${new Date().toLocaleDateString()}</p>
+    </div>
+    <table class="print-table">
+      <thead>
+        <tr>
+          <th>發布時間</th>
+          ${filteredDefects.some(d => d.building) ? '<th>棟別</th>' : ''}
+          <th>樓層</th>
+          <th>工項</th>
+          <th>描述</th>
+          <th>照片</th>
+        </tr>
+      </thead>
+      <tbody>
+  `;
   
-  // 更新缺失記錄
-  defects[currentEditIndex] = {
-    ...defects[currentEditIndex],  // 保留原始數據
-    building: document.getElementById("edit-building").value,
-    floor: document.getElementById("edit-floor").value,
-    item: document.getElementById("edit-item").value,
-    desc: document.getElementById("edit-desc").value,
-    status: status,
-    lastUpdated: new Date().toISOString()  // 記錄最後更新時間
-  };
+  // 添加每條記錄到表格
+  filteredDefects.forEach(d => {
+    const dateDisplay = d.createdAt ? formatDate(d.createdAt) : '未記錄';
+    
+    printContent += `
+      <tr>
+        <td>${dateDisplay}</td>
+        ${d.building ? `<td>${d.building}</td>` : ''}
+        <td>${d.floor}</td>
+        <td>${d.item}</td>
+        <td>${d.desc}</td>
+        <td class="print-photos">
+    `;
+    
+    // 添加照片
+    if (d.photos && d.photos.length > 0) {
+      d.photos.forEach(photo => {
+        if (photo) {
+          printContent += `<img src="${photo}">`;
+        }
+      });
+    } else {
+      printContent += '無照片';
+    }
+    
+    printContent += `</td></tr>`;
+  });
   
-  // 如果是代工扣款，添加扣款數量
-  if (status === 'deduction') {
-    defects[currentEditIndex].deduction = document.getElementById("edit-deduction").value;
-  }
+  printContent += `</tbody></table>`;
   
-  // 如果上傳了新圖片，更新圖片
-  if (tempEditImage) {
-    defects[currentEditIndex].photo = tempEditImage;
-  }
+  // 設置列印區域內容
+  const printArea = document.getElementById('print-area');
+  printArea.innerHTML = printContent;
+  printArea.style.display = 'block';
   
-  save();
-  render();
-  closeEditModal();
+  // 執行列印
+  window.print();
+  
+  // 列印完成後隱藏列印區域
+  setTimeout(() => {
+    printArea.style.display = 'none';
+    showToast('列印操作已完成');
+  }, 100);
 }
 
-// 刪除缺失記錄
-function deleteDefect() {
-  if (currentEditIndex < 0) return;
+// 初始化頁面
+function initPage() {
+  // 檢查並更新舊記錄，添加createdAt字段
+  defects.forEach(defect => {
+    if (!defect.createdAt) {
+      defect.createdAt = new Date().toISOString(); // 為舊記錄添加當前時間
+    }
+    // 確保photos字段存在
+    if (!defect.photos) {
+      defect.photos = defect.photo ? [defect.photo] : []; // 轉換舊的單一照片
+      delete defect.photo; // 刪除舊字段
+    }
+  });
   
-  if (confirm("確定要刪除此缺失記錄嗎？")) {
-    defects.splice(currentEditIndex, 1);
-    save();
-    render();
-    closeEditModal();
-  }
+  save(); // 保存更新後的數據
+  render(); // 渲染頁面
 }
 
-// 初始渲染
-render();
+// 頁面載入時初始化
+initPage();
 
-// 監聽鍵盤ESC鍵關閉模態框
-document.addEventListener('keydown', function(e) {
-  if (e.key === "Escape") {
-    closeEditModal();
-    closeImageViewer();
-  }
-});
-
-// 點擊模態框外部關閉
-window.addEventListener('click', function(e) {
-  if (e.target === document.getElementById("editModal")) {
-    closeEditModal();
-  }
-  
-  if (e.target === document.getElementById("imageViewer")) {
-    closeImageViewer();
-  }
-});
 </script>
 
 </body>

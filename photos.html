@@ -2,6 +2,7 @@
 <html>
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>工程履歷</title>
 <link rel="stylesheet" href="css/style.css">
 <style>
@@ -11,12 +12,191 @@
   margin-bottom: 20px;
   color: #3a7bd5;
 }
+
+/* 手機友好的樣式 */
+body {
+  padding: 15px;
+  max-width: 100%;
+}
+
+.form-group {
+  margin-bottom: 15px;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 5px;
+  font-weight: bold;
+}
+
+.form-group input, .form-group select {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 16px;
+}
+
+.required::after {
+  content: "*";
+  color: red;
+}
+
+.btn {
+  background-color: #4CAF50;
+  color: white;
+  padding: 12px 20px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 16px;
+  margin: 5px 0;
+}
+
+.btn-home {
+  background-color: #3a7bd5;
+}
+
+.photo-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 15px;
+}
+
+.photo-preview {
+  position: relative;
+  width: 100px;
+  height: 100px;
+  border: 1px solid #ddd;
+}
+
+.photo-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.remove-photo {
+  position: absolute;
+  top: 0;
+  right: 0;
+  background: rgba(255, 0, 0, 0.7);
+  color: white;
+  border: none;
+  cursor: pointer;
+  width: 20px;
+  height: 20px;
+  font-size: 12px;
+  line-height: 1;
+}
+
+.filter-section {
+  background-color: #f5f5f5;
+  padding: 15px;
+  margin-bottom: 20px;
+  border-radius: 4px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: flex-end;
+}
+
+.filter-section .form-group {
+  flex: 1;
+  min-width: 120px;
+  margin-bottom: 0;
+}
+
+.filter-section .btn-container {
+  display: flex;
+  gap: 5px;
+}
+
+.photo-item {
+  border: 1px solid #ddd;
+  margin-bottom: 20px;
+  padding: 10px;
+  border-radius: 4px;
+}
+
+.photo-info {
+  margin-bottom: 10px;
+}
+
+.photos-gallery {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.photos-gallery img {
+  width: 150px;
+  height: 150px;
+  object-fit: cover;
+  cursor: pointer;
+}
+
+/* 彈出的照片預覽 */
+.modal {
+  display: none;
+  position: fixed;
+  z-index: 999;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0,0,0,0.9);
+}
+
+.modal-content {
+  margin: auto;
+  display: block;
+  max-width: 90%;
+  max-height: 90%;
+}
+
+.close {
+  position: absolute;
+  top: 15px;
+  right: 35px;
+  color: #f1f1f1;
+  font-size: 40px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.success-message {
+  background-color: #4CAF50;
+  color: white;
+  padding: 15px;
+  margin: 15px 0;
+  border-radius: 4px;
+  text-align: center;
+  opacity: 1;
+  transition: opacity 1s;
+}
+
+.success-message.fade {
+  opacity: 0;
+}
+
+.new-record-highlight {
+  background-color: #e6f7ff;
+  border-left: 4px solid #1890ff;
+  animation: fadeBackground 3s ease-in-out;
+}
+
+@keyframes fadeBackground {
+  from { background-color: #e6f7ff; }
+  to { background-color: white; }
+}
 </style>
 </head>
 
 <body>
 
-<button onclick="go('index.html')">回首頁</button>
+<button class="btn btn-home" onclick="go('index.html')">回首頁</button>
 
 <h2>工程履歷</h2>
 
@@ -25,74 +205,360 @@
   當前建案: <span id="current-project-name"></span>
 </div>
 
-施工位置
-<input id="location">
+<!-- 成功訊息區域 -->
+<div id="success-message" style="display:none;" class="success-message"></div>
 
-照片
-<input type="file" id="photo">
+<div class="form-group">
+  <label for="date">時間</label>
+  <input type="date" id="date" value="">
+</div>
 
-<button onclick="addPhoto()">新增</button>
+<div class="form-group">
+  <label for="building">樓棟</label>
+  <input type="text" id="building" placeholder="請輸入樓棟">
+</div>
+
+<div class="form-group">
+  <label for="floor" class="required">樓層</label>
+  <input type="text" id="floor" placeholder="請輸入樓層（必填）">
+</div>
+
+<div class="form-group">
+  <label for="unit">戶別</label>
+  <input type="text" id="unit" placeholder="請輸入戶別">
+</div>
+
+<div class="form-group">
+  <label for="location">位置</label>
+  <input type="text" id="location" placeholder="請輸入位置">
+</div>
+
+<div class="form-group">
+  <label for="photo">照片</label>
+  <input type="file" id="photo" accept="image/*" multiple>
+  <div id="photo-preview-container" class="photo-container"></div>
+</div>
+
+<button class="btn" onclick="addRecord()">新增記錄</button>
+
+<!-- 簡化後的篩選區塊 -->
+<div class="filter-section">
+  <div class="form-group">
+    <label for="filter-building">樓棟</label>
+    <select id="filter-building" onchange="applyFilter()">
+      <option value="">全部</option>
+      <!-- 選項將由JavaScript動態填充 -->
+    </select>
+  </div>
+  
+  <div class="form-group">
+    <label for="filter-floor">樓層</label>
+    <select id="filter-floor" onchange="applyFilter()">
+      <option value="">全部</option>
+      <!-- 選項將由JavaScript動態填充 -->
+    </select>
+  </div>
+  
+  <div class="form-group">
+    <label for="filter-unit">戶別</label>
+    <select id="filter-unit" onchange="applyFilter()">
+      <option value="">全部</option>
+      <!-- 選項將由JavaScript動態填充 -->
+    </select>
+  </div>
+  
+  <div class="btn-container">
+    <button class="btn" style="background-color: #999;" onclick="resetFilter()">重置篩選</button>
+  </div>
+</div>
 
 <div id="list"></div>
+
+<!-- 照片預覽模態框 -->
+<div id="imageModal" class="modal">
+  <span class="close" onclick="closeModal()">&times;</span>
+  <img class="modal-content" id="modalImg">
+</div>
 
 <script src="js/main.js"></script>
 
 <script>
-
 // 使用建案隔離的數據存取方式
-let photos = getProjectData("photos");
+let records = getProjectData("engineeringRecords") || [];
+let lastAddedRecordId = null;
+
+// 用於暫存待上傳的照片
+let tempPhotos = [];
 
 // 顯示當前建案名稱
 document.getElementById("current-project-name").innerText = getCurrentProject();
 
-function save(){
-  saveProjectData("photos", photos);
-}
+// 設置今天的日期為預設值
+document.getElementById("date").valueAsDate = new Date();
 
-function render(){
-  let html="";
+// 初始化篩選下拉選單
+updateFilterOptions();
 
-  photos.forEach(p=>{
-    html+=`
-    <div>
-    <p>${p.location}</p>
-    <img src="${p.photo}">
-    </div>
-    `;
-  });
-
-  document.getElementById("list").innerHTML=html;
-}
-
-function addPhoto(){
-  let file = photo.files[0];
+// 處理照片預覽
+document.getElementById("photo").addEventListener("change", function(event) {
+  const files = event.target.files;
+  const container = document.getElementById("photo-preview-container");
   
-  if (!file) {
-    alert("請選擇一張照片");
+  for (let i = 0; i < files.length; i++) {
+    const file = files[i];
+    const reader = new FileReader();
+    
+    reader.onload = function(e) {
+      // 創建預覽元素
+      const div = document.createElement("div");
+      div.className = "photo-preview";
+      
+      const img = document.createElement("img");
+      img.src = e.target.result;
+      
+      const removeBtn = document.createElement("button");
+      removeBtn.className = "remove-photo";
+      removeBtn.innerHTML = "×";
+      removeBtn.onclick = function() {
+        // 移除預覽和照片資料
+        const index = tempPhotos.findIndex(p => p === e.target.result);
+        if (index > -1) {
+          tempPhotos.splice(index, 1);
+        }
+        div.remove();
+      };
+      
+      div.appendChild(img);
+      div.appendChild(removeBtn);
+      container.appendChild(div);
+      
+      // 將照片資料暫存
+      tempPhotos.push(e.target.result);
+    };
+    
+    reader.readAsDataURL(file);
+  }
+});
+
+function save() {
+  saveProjectData("engineeringRecords", records);
+  // 更新篩選選項
+  updateFilterOptions();
+}
+
+// 獲取所有唯一的樓棟、樓層和戶別，用於下拉選單
+function getUniqueValues(field) {
+  const values = new Set();
+  records.forEach(record => {
+    if (record[field] && record[field].trim() !== '') {
+      values.add(record[field]);
+    }
+  });
+  return Array.from(values).sort();
+}
+
+// 更新所有篩選下拉選單選項
+function updateFilterOptions() {
+  // 獲取唯一值
+  const buildings = getUniqueValues('building');
+  const floors = getUniqueValues('floor');
+  const units = getUniqueValues('unit');
+  
+  // 記住當前選中的值
+  const currentBuilding = document.getElementById('filter-building').value;
+  const currentFloor = document.getElementById('filter-floor').value;
+  const currentUnit = document.getElementById('filter-unit').value;
+  
+  // 填充樓棟選項
+  const buildingSelect = document.getElementById('filter-building');
+  buildingSelect.innerHTML = '<option value="">全部</option>';
+  buildings.forEach(building => {
+    const option = document.createElement('option');
+    option.value = building;
+    option.textContent = building;
+    option.selected = building === currentBuilding;
+    buildingSelect.appendChild(option);
+  });
+  
+  // 填充樓層選項
+  const floorSelect = document.getElementById('filter-floor');
+  floorSelect.innerHTML = '<option value="">全部</option>';
+  floors.forEach(floor => {
+    const option = document.createElement('option');
+    option.value = floor;
+    option.textContent = floor;
+    option.selected = floor === currentFloor;
+    floorSelect.appendChild(option);
+  });
+  
+  // 填充戶別選項
+  const unitSelect = document.getElementById('filter-unit');
+  unitSelect.innerHTML = '<option value="">全部</option>';
+  units.forEach(unit => {
+    const option = document.createElement('option');
+    option.value = unit;
+    option.textContent = unit;
+    option.selected = unit === currentUnit;
+    unitSelect.appendChild(option);
+  });
+}
+
+function render(dataToRender = records) {
+  let html = "";
+  
+  if (dataToRender.length === 0) {
+    html = "<p>沒有符合條件的記錄</p>";
+  } else {
+    dataToRender.forEach((record, index) => {
+      // 檢查是否為新添加的記錄
+      const isNewRecord = record.id === lastAddedRecordId;
+      const highlightClass = isNewRecord ? 'new-record-highlight' : '';
+      
+      html += `
+      <div class="photo-item ${highlightClass}" id="record-${record.id}">
+        <div class="photo-info">
+          <p><strong>時間:</strong> ${record.date || '未指定'}</p>
+          <p><strong>樓棟:</strong> ${record.building || '未指定'}</p>
+          <p><strong>樓層:</strong> ${record.floor || '未指定'}</p>
+          <p><strong>戶別:</strong> ${record.unit || '未指定'}</p>
+          <p><strong>位置:</strong> ${record.location || '未指定'}</p>
+        </div>
+        <div class="photos-gallery">
+      `;
+      
+      record.photos.forEach((photo, photoIndex) => {
+        html += `<img src="${photo}" onclick="showModal('${index}-${photoIndex}')">`;
+      });
+      
+      html += `
+        </div>
+      </div>
+      `;
+    });
+  }
+  
+  document.getElementById("list").innerHTML = html;
+  
+  // 如果有新記錄，滾動到該記錄
+  if (lastAddedRecordId !== null) {
+    const newRecordElement = document.getElementById(`record-${lastAddedRecordId}`);
+    if (newRecordElement) {
+      newRecordElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      
+      // 5秒後清除高亮效果
+      setTimeout(() => {
+        lastAddedRecordId = null;
+      }, 5000);
+    }
+  }
+}
+
+function showModal(id) {
+  const [recordIndex, photoIndex] = id.split('-').map(Number);
+  document.getElementById("modalImg").src = records[recordIndex].photos[photoIndex];
+  document.getElementById("imageModal").style.display = "flex";
+}
+
+function closeModal() {
+  document.getElementById("imageModal").style.display = "none";
+}
+
+function showSuccessMessage(message) {
+  const successMessage = document.getElementById("success-message");
+  successMessage.textContent = message;
+  successMessage.style.display = "block";
+  
+  // 3秒後淡出消息
+  setTimeout(() => {
+    successMessage.classList.add("fade");
+    setTimeout(() => {
+      successMessage.style.display = "none";
+      successMessage.classList.remove("fade");
+    }, 1000);
+  }, 3000);
+}
+
+function addRecord() {
+  const date = document.getElementById("date").value;
+  const building = document.getElementById("building").value;
+  const floor = document.getElementById("floor").value;
+  const unit = document.getElementById("unit").value;
+  const location = document.getElementById("location").value;
+  
+  // 驗證樓層是必填欄位
+  if (!floor) {
+    alert("請輸入樓層，這是必填欄位");
     return;
   }
-
-  let reader = new FileReader();
-
-  reader.onload=function(){
-    photos.push({
-      location:location.value,
-      photo:reader.result
-    });
-
-    save();
-    render();
-    
-    // 清空輸入欄位
-    document.getElementById("location").value = "";
-    document.getElementById("photo").value = "";
+  
+  if (tempPhotos.length === 0) {
+    alert("請至少選擇一張照片");
+    return;
+  }
+  
+  // 生成唯一ID
+  const recordId = Date.now().toString();
+  
+  const newRecord = {
+    id: recordId,
+    date: date,
+    building: building,
+    floor: floor,
+    unit: unit,
+    location: location,
+    photos: [...tempPhotos],
+    timestamp: new Date().getTime()
   };
-
-  reader.readAsDataURL(file);
+  
+  records.push(newRecord);
+  save();
+  
+  // 記住最新添加的記錄ID
+  lastAddedRecordId = recordId;
+  
+  // 清空輸入欄位
+  document.getElementById("building").value = "";
+  document.getElementById("floor").value = "";
+  document.getElementById("unit").value = "";
+  document.getElementById("location").value = "";
+  document.getElementById("photo").value = "";
+  document.getElementById("photo-preview-container").innerHTML = "";
+  tempPhotos = [];
+  
+  render();
+  showSuccessMessage("記錄已成功新增！");
 }
 
-render();
+function applyFilter() {
+  const buildingFilter = document.getElementById("filter-building").value;
+  const floorFilter = document.getElementById("filter-floor").value;
+  const unitFilter = document.getElementById("filter-unit").value;
+  
+  const filteredRecords = records.filter(record => {
+    // 樓棟篩選
+    const buildingMatch = !buildingFilter || record.building === buildingFilter;
+    
+    // 樓層篩選
+    const floorMatch = !floorFilter || record.floor === floorFilter;
+    
+    // 戶別篩選
+    const unitMatch = !unitFilter || record.unit === unitFilter;
+    
+    return buildingMatch && floorMatch && unitMatch;
+  });
+  
+  render(filteredRecords);
+}
 
+function resetFilter() {
+  document.getElementById("filter-building").value = "";
+  document.getElementById("filter-floor").value = "";
+  document.getElementById("filter-unit").value = "";
+  render();
+}
+
+// 初始渲染
+render();
 </script>
 
 </body>
