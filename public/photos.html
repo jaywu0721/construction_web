@@ -200,10 +200,74 @@ body {
   from { background-color: #e6f7ff; }
   to { background-color: white; }
 }
+
+/* 新增加載指示器樣式 */
+.loading-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(255, 255, 255, 0.8);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid #f3f3f3;
+  border-top: 4px solid #3498db;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.toast-message {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  background-color: #4CAF50;
+  color: white;
+  padding: 15px 20px;
+  border-radius: 5px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+  z-index: 1000;
+  transition: opacity 0.5s, transform 0.5s;
+  opacity: 0;
+  transform: translateY(-20px);
+}
+
+.toast-message.show {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.toast-message.success {
+  background-color: #4CAF50;
+}
+
+.toast-message.error {
+  background-color: #f44336;
+}
 </style>
 </head>
 
 <body>
+
+<!-- 加載指示器 -->
+<div id="loading-overlay" class="loading-overlay">
+  <div class="spinner"></div>
+</div>
+
+<!-- 提示消息容器 -->
+<div id="toast-message" class="toast-message"></div>
 
 <button class="btn btn-home" onclick="go('index.html')">回首頁</button>
 
@@ -211,7 +275,7 @@ body {
 
 <!-- 顯示當前建案 -->
 <div class="current-project">
-  當前建案: <span id="current-project-name"></span>
+  當建案: <span id="current-project-name">載入中...</span>
 </div>
 
 <!-- 成功訊息區域 -->
@@ -289,24 +353,64 @@ body {
   <img class="modal-content" id="modalImg">
 </div>
 
-<script src="js/main.js"></script>
-
 <script>
-// 使用建案隔離的數據存取方式
-let records = getProjectData("engineeringRecords") || [];
+// 初始化變數
+let records = [];
 let lastAddedRecordId = null;
+let currentProjectName = "載入中...";
 
 // 用於暫存待上傳的照片
 let tempPhotos = [];
 
-// 顯示當前建案名稱
-document.getElementById("current-project-name").innerText = getCurrentProject();
+// 頁面加載時初始化
+document.addEventListener('DOMContentLoaded', initData);
 
-// 設置今天的日期為預設值
-document.getElementById("date").valueAsDate = new Date();
+// 初始化數據
+async function initData() {
+  try {
+    showLoading(true);
+    
+    // 獲取當前建案名稱
+    currentProjectName = await getCurrentProject();
+    document.getElementById("current-project-name").innerText = currentProjectName;
+    
+    // 獲取工程履歷數據
+    const recordsData = await getProjectData("engineeringRecords");
+    
+    // 確保數據是數組
+    records = Array.isArray(recordsData) ? recordsData : [];
+    
+    // 設置今天的日期為預設值
+    document.getElementById("date").valueAsDate = new Date();
+    
+    // 更新篩選選項並渲染頁面
+    updateFilterOptions();
+    render();
+    
+    showLoading(false);
+  } catch (error) {
+    console.error("初始化數據失敗:", error);
+    showToast("載入數據失敗，請刷新頁面重試", "error");
+    showLoading(false);
+  }
+}
 
-// 初始化篩選下拉選單
-updateFilterOptions();
+// 顯示/隱藏加載指示器
+function showLoading(show) {
+  document.getElementById("loading-overlay").style.display = show ? "flex" : "none";
+}
+
+// 顯示提示消息
+function showToast(message, type = 'success') {
+  const toast = document.getElementById('toast-message');
+  toast.innerText = message;
+  toast.className = `toast-message ${type} show`;
+  
+  // 3秒後自動隱藏
+  setTimeout(() => {
+    toast.classList.remove('show');
+  }, 3000);
+}
 
 // 處理照片預覽
 document.getElementById("photo").addEventListener("change", function(event) {
@@ -349,10 +453,20 @@ document.getElementById("photo").addEventListener("change", function(event) {
   }
 });
 
-function save() {
-  saveProjectData("engineeringRecords", records);
-  // 更新篩選選項
-  updateFilterOptions();
+async function save() {
+  try {
+    showLoading(true);
+    await saveProjectData("engineeringRecords", records);
+    // 更新篩選選項
+    updateFilterOptions();
+    showLoading(false);
+    return true;
+  } catch (error) {
+    console.error("保存數據失敗:", error);
+    showToast("保存失敗，請重試", "error");
+    showLoading(false);
+    return false;
+  }
 }
 
 // 獲取所有唯一的樓棟、樓層和戶別，用於下拉選單
@@ -415,7 +529,7 @@ function updateFilterOptions() {
 function render(dataToRender = records) {
   let html = "";
   
-  if (dataToRender.length === 0) {
+  if (!Array.isArray(dataToRender) || dataToRender.length === 0) {
     html = "<p>沒有符合條件的記錄</p>";
   } else {
     dataToRender.forEach((record, index) => {
@@ -435,9 +549,11 @@ function render(dataToRender = records) {
         <div class="photos-gallery">
       `;
       
-      record.photos.forEach((photo, photoIndex) => {
-        html += `<img src="${photo}" onclick="showModal('${index}-${photoIndex}')">`;
-      });
+      if (Array.isArray(record.photos)) {
+        record.photos.forEach((photo, photoIndex) => {
+          html += `<img src="${photo}" onclick="showModal('${index}-${photoIndex}')">`;
+        });
+      }
       
       html += `
         </div>
@@ -464,8 +580,10 @@ function render(dataToRender = records) {
 
 function showModal(id) {
   const [recordIndex, photoIndex] = id.split('-').map(Number);
-  document.getElementById("modalImg").src = records[recordIndex].photos[photoIndex];
-  document.getElementById("imageModal").style.display = "flex";
+  if (records[recordIndex] && records[recordIndex].photos && records[recordIndex].photos[photoIndex]) {
+    document.getElementById("modalImg").src = records[recordIndex].photos[photoIndex];
+    document.getElementById("imageModal").style.display = "flex";
+  }
 }
 
 function closeModal() {
@@ -487,7 +605,7 @@ function showSuccessMessage(message) {
   }, 3000);
 }
 
-function addRecord() {
+async function addRecord() {
   const date = document.getElementById("date").value;
   const building = document.getElementById("building").value;
   const floor = document.getElementById("floor").value;
@@ -505,37 +623,45 @@ function addRecord() {
     return;
   }
   
-  // 生成唯一ID
-  const recordId = Date.now().toString();
-  
-  const newRecord = {
-    id: recordId,
-    date: date,
-    building: building,
-    floor: floor,
-    unit: unit,
-    location: location,
-    photos: [...tempPhotos],
-    timestamp: new Date().getTime()
-  };
-  
-  records.push(newRecord);
-  save();
-  
-  // 記住最新添加的記錄ID
-  lastAddedRecordId = recordId;
-  
-  // 清空輸入欄位
-  document.getElementById("building").value = "";
-  document.getElementById("floor").value = "";
-  document.getElementById("unit").value = "";
-  document.getElementById("location").value = "";
-  document.getElementById("photo").value = "";
-  document.getElementById("photo-preview-container").innerHTML = "";
-  tempPhotos = [];
-  
-  render();
-  showSuccessMessage("記錄已成功新增！");
+  try {
+    // 生成唯一ID
+    const recordId = Date.now().toString();
+    
+    const newRecord = {
+      id: recordId,
+      date: date,
+      building: building,
+      floor: floor,
+      unit: unit,
+      location: location,
+      photos: [...tempPhotos],
+      timestamp: new Date().getTime()
+    };
+    
+    records.push(newRecord);
+    const saved = await save();
+    
+    if (saved) {
+      // 記住最新添加的記錄ID
+      lastAddedRecordId = recordId;
+      
+      // 清空輸入欄位
+      document.getElementById("building").value = "";
+      document.getElementById("floor").value = "";
+      document.getElementById("unit").value = "";
+      document.getElementById("location").value = "";
+      document.getElementById("photo").value = "";
+      document.getElementById("photo-preview-container").innerHTML = "";
+      tempPhotos = [];
+      
+      render();
+      showSuccessMessage("記錄已成功新增！");
+      showToast("記錄已成功新增！");
+    }
+  } catch (error) {
+    console.error("新增記錄失敗:", error);
+    showToast("新增記錄失敗，請重試", "error");
+  }
 }
 
 function applyFilter() {
@@ -565,9 +691,6 @@ function resetFilter() {
   document.getElementById("filter-unit").value = "";
   render();
 }
-
-// 初始渲染
-render();
 </script>
 
 </body>
