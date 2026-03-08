@@ -17,6 +17,61 @@
 <!-- 引入主要JS檔案 -->
 <script src="js/main.js"></script>
 <style>
+/* 加載指示器樣式 */
+.loading-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(255, 255, 255, 0.8);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid #f3f3f3;
+  border-top: 4px solid #3498db;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.toast-message {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  background-color: #4CAF50;
+  color: white;
+  padding: 15px 20px;
+  border-radius: 5px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+  z-index: 1000;
+  transition: opacity 0.5s, transform 0.5s;
+  opacity: 0;
+  transform: translateY(-20px);
+}
+
+.toast-message.show {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.toast-message.success {
+  background-color: #4CAF50;
+}
+
+.toast-message.error {
+  background-color: #f44336;
+}
 /* 模態框樣式 */
 .modal {
   display: none;
@@ -305,10 +360,16 @@
 </head>
 
 <body>
+<!-- 加載指示器 -->
+<div id="loading-overlay" class="loading-overlay" style="display:none;">
+  <div class="spinner"></div>
+</div>
 
+<!-- 提示消息容器 -->
+<div id="toast-message" class="toast-message"></div>
 <button onclick="go('index.html')">回首頁</button>
 
-<h2>施工日誌</h2>
+<h2>施日誌</h2>
 
 <!-- 顯示當前建案 -->
 <div class="current-project">
@@ -533,11 +594,57 @@
 <script>
 
 // 使用建案隔離的數據存取方式
-let logs = getProjectData("logs");
-let workers = getProjectData("workers");
+let logs = [];
+let workers = [];
+let currentProjectName = "載入中...";
 
-// 顯示當前建案名稱
-document.getElementById("current-project-name").innerText = getCurrentProject();
+// 頁面加載時初始化
+document.addEventListener('DOMContentLoaded', initData);
+
+// 初始化數據
+async function initData() {
+  try {
+    showLoading(true);
+    
+    // 獲取當前建案名稱
+    currentProjectName = await getCurrentProject();
+    document.getElementById("current-project-name").innerText = currentProjectName;
+    
+    // 獲取施工日誌和出工記錄數據
+    const logsData = await getProjectData("logs");
+    const workersData = await getProjectData("workers");
+    
+    // 確保數據是數組
+    logs = Array.isArray(logsData) ? logsData : [];
+    workers = Array.isArray(workersData) ? workersData : [];
+    
+    // 渲染頁面
+    render();
+    
+    showLoading(false);
+  } catch (error) {
+    console.error("初始化數據失敗:", error);
+    showToast("載入數據失敗，請刷新頁面重試", "error");
+    showLoading(false);
+  }
+}
+
+// 顯示/隱藏加載指示器
+function showLoading(show) {
+  document.getElementById("loading-overlay").style.display = show ? "flex" : "none";
+}
+
+// 顯示提示消息
+function showToast(message, type = 'success') {
+  const toast = document.getElementById('toast-message');
+  toast.innerText = message;
+  toast.className = `toast-message ${type} show`;
+  
+  // 3秒後自動隱藏
+  setTimeout(() => {
+    toast.classList.remove('show');
+  }, 3000);
+}
 
 // 新增材料列表暫存
 let currentMaterials = [];
@@ -552,8 +659,18 @@ let workerHelperVisible = true;
 // 存儲發現重複的日期索引
 let duplicateLogIndex = -1;
 
-function save(){
-  saveProjectData("logs", logs);
+async function save(){
+  try {
+    showLoading(true);
+    await saveProjectData("logs", logs);
+    showLoading(false);
+    return true;
+  } catch (error) {
+    console.error("保存數據失敗:", error);
+    showToast("保存失敗，請重試", "error");
+    showLoading(false);
+    return false;
+  }
 }
 
 function render(){
@@ -695,83 +812,94 @@ function editDuplicateLog() {
   }
 }
 
-// 根據選取的日期過濾出工紀錄
-function updateWorkersByDate() {
-  // 使用 getProjectData 獲取當前建案的工人記錄
-  workers = getProjectData("workers");
-  
-  let selectedDate = document.getElementById("date").value;
-  
-  if (!selectedDate) {
-    // 如果沒有選擇日期，顯示所有紀錄
-    renderAllWorkers();
-    return;
-  }
-  
-  // 篩選出與所選日期相符的出工紀錄
-  currentDateWorkers = workers.filter(worker => worker.date === selectedDate);
-  
-  let workers_html = "";
-  let totalWorkers = 0;
-  let workerTypes = {};
-  
-  currentDateWorkers.forEach(w => {
-    workers_html += `
-    <tr class="worker-row">
-      <td>${w.date}</td>
-      <td>${w.type || ''}</td>
-      <td>${w.count || '0'}</td>
-      <td>${w.content || ''}</td>
-    </tr>
-    `;
+async function updateWorkersByDate() {
+  try {
+    // 使用非同步方式獲取當前建案的工人記錄
+    const workersData = await getProjectData("workers");
+    workers = Array.isArray(workersData) ? workersData : [];
     
-    // 累計人數統計
-    const count = parseInt(w.count) || 0;
-    totalWorkers += count;
+    let selectedDate = document.getElementById("date").value;
     
-    // 工種統計
-    if (w.type) {
-      workerTypes[w.type] = (workerTypes[w.type] || 0) + count;
+    if (!selectedDate) {
+      // 如果沒有選擇日期，顯示所有紀錄
+      renderAllWorkers();
+      return;
     }
-  });
-  
-  document.getElementById("workers_table").innerHTML = workers_html;
-  
-  // 顯示摘要資訊
-  const workerSummary = document.getElementById("workers_summary");
-  
-  if (currentDateWorkers.length > 0) {
-    let typesSummary = Object.entries(workerTypes)
-      .map(([type, count]) => `${type}: ${count}人`)
-      .join('，');
+    
+    // 篩選出與所選日期相符的出工紀錄
+    currentDateWorkers = workers.filter(worker => worker.date === selectedDate);
+    
+    let workers_html = "";
+    let totalWorkers = 0;
+    let workerTypes = {};
+    
+    currentDateWorkers.forEach(w => {
+      workers_html += `
+      <tr class="worker-row">
+        <td>${w.date}</td>
+        <td>${w.type || ''}</td>
+        <td>${w.count || '0'}</td>
+        <td>${w.content || ''}</td>
+      </tr>
+      `;
       
-    workerSummary.innerHTML = `今日出工: 共${totalWorkers}人 (${typesSummary})`;
-    workerSummary.style.display = "block";
-  } else {
-    workerSummary.style.display = "none";
+      // 累計人數統計
+      const count = parseInt(w.count) || 0;
+      totalWorkers += count;
+      
+      // 工種統計
+      if (w.type) {
+        workerTypes[w.type] = (workerTypes[w.type] || 0) + count;
+      }
+    });
+    
+    document.getElementById("workers_table").innerHTML = workers_html;
+    
+    // 顯示摘要資訊
+    const workerSummary = document.getElementById("workers_summary");
+    
+    if (currentDateWorkers.length > 0) {
+      let typesSummary = Object.entries(workerTypes)
+        .map(([type, count]) => `${type}: ${count}人`)
+        .join('，');
+        
+      workerSummary.innerHTML = `今日出工: 共${totalWorkers}人 (${typesSummary})`;
+      workerSummary.style.display = "block";
+    } else {
+      workerSummary.style.display = "none";
+    }
+  } catch (error) {
+    console.error("獲取工人數據失敗:", error);
+    showToast("載入出工記錄失敗", "error");
   }
 }
 
 // 顯示所有出工紀錄
-function renderAllWorkers() {
-  // 使用 getProjectData 獲取當前建案的工人記錄
-  workers = getProjectData("workers");
-  
-  let workers_html = "";
-  
-  workers.forEach(w => {
-    workers_html += `
-    <tr>
-      <td>${w.date || ''}</td>
-      <td>${w.type || ''}</td>
-      <td>${w.count || ''}</td>
-      <td>${w.content || ''}</td>
-    </tr>
-    `;
-  });
-  
-  document.getElementById("workers_table").innerHTML = workers_html;
-  document.getElementById("workers_summary").style.display = "none";
+async function renderAllWorkers() {
+  try {
+    // 使用非同步方式獲取當前建案的工人記錄
+    const workersData = await getProjectData("workers");
+    workers = Array.isArray(workersData) ? workersData : [];
+    
+    let workers_html = "";
+    
+    workers.forEach(w => {
+      workers_html += `
+      <tr>
+        <td>${w.date || ''}</td>
+        <td>${w.type || ''}</td>
+        <td>${w.count || ''}</td>
+        <td>${w.content || ''}</td>
+      </tr>
+      `;
+    });
+    
+    document.getElementById("workers_table").innerHTML = workers_html;
+    document.getElementById("workers_summary").style.display = "none";
+  } catch (error) {
+    console.error("獲取工人數據失敗:", error);
+    showToast("載入出工記錄失敗", "error");
+  }
 }
 
 // 將出工紀錄寫入施工進度
@@ -823,7 +951,7 @@ function closeEditLog() {
 }
 
 // 保存編輯的日誌
-function saveEditLog() {
+async function saveEditLog() {
   if (currentEditingIndex === -1) return;
   
   const newDate = document.getElementById("edit_date").value;
@@ -852,11 +980,14 @@ function saveEditLog() {
   };
   
   // 保存並重新渲染
-  save();
-  render();
-  
-  // 關閉模態框
-  closeEditLog();
+  const saved = await save();
+  if (saved) {
+    showToast("日誌已成功更新");
+    render();
+    
+    // 關閉模態框
+    closeEditLog();
+  }
 }
 
 // 顯示日誌詳細資料
@@ -1018,7 +1149,7 @@ function removeMaterial(index) {
   renderMaterials();
 }
 
-function addLog(){
+async function addLog(){
   let log = {
     date: date.value,
     weather_am: weather_am.value,
@@ -1042,9 +1173,12 @@ function addLog(){
   };
 
   logs.push(log);
-  save();
-  render();
-  clearForm();
+  const saved = await save();
+  if (saved) {
+    showToast("施工日誌新增成功");
+    render();
+    clearForm();
+  }
 }
 
 function clearForm(){
@@ -1067,10 +1201,16 @@ function clearForm(){
   document.getElementById("workers_summary").style.display = "none";
 }
 
-function removeLog(i){
-  logs.splice(i,1);
-  save();
-  render();
+// 應該修改為:
+async function removeLog(i){
+  if (confirm("確定要刪除這筆施工日誌嗎？")) {
+    logs.splice(i,1);
+    const saved = await save();
+    if (saved) {
+      showToast("施工日誌已刪除", "error");
+      render();
+    }
+  }
 }
 
 async function generatePDF(){
@@ -1181,7 +1321,11 @@ document.addEventListener('keydown', function(event) {
 
 // 頁面載入時執行渲染
 render();
+// 為日期選擇器添加事件監聽器
+document.getElementById("date").addEventListener("change", updateWorkersByDate);
 
+// 頁面載入時執行渲染 (已由 initData 接管，可以刪除此行)
+// render();
 </script>
 
 </body>
