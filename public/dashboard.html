@@ -13,9 +13,80 @@
 
 <!-- 引入主要JS檔案 -->
 <script src="js/main.js"></script>
+<style>
+/* 加載指示器樣式 */
+.loading-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(255, 255, 255, 0.8);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid #f3f3f3;
+  border-top: 4px solid #3498db;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.toast-message {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  background-color: #4CAF50;
+  color: white;
+  padding: 15px 20px;
+  border-radius: 5px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+  z-index: 1000;
+  transition: opacity 0.5s, transform 0.5s;
+  opacity: 0;
+  transform: translateY(-20px);
+}
+
+.toast-message.show {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.toast-message.success {
+  background-color: #4CAF50;
+}
+
+.toast-message.error {
+  background-color: #f44336;
+}
+
+.current-project {
+  font-size: 18px;
+  font-weight: bold;
+  margin-bottom: 20px;
+  color: #3a7bd5;
+}
+</style>
 </head>
 
 <body>
+<!-- 加載指示器 -->
+<div id="loading-overlay" class="loading-overlay" style="display:none;">
+  <div class="spinner"></div>
+</div>
+
+<!-- 提示消息容器 -->
+<div id="toast-message" class="toast-message"></div>
 
 <button onclick="go('index.html')">回首頁</button>
 
@@ -23,11 +94,10 @@
 
 <!-- 顯示當前建案 -->
 <div class="current-project">
-  當前建案: <span id="current-project-name"></span>
+  當前建案: <span id="current-project-name">載入中...</span>
 </div>
 
 <table>
-
 <tr>
 <th>項目</th>
 <th>數量</th>
@@ -35,37 +105,80 @@
 
 <tr>
 <td>缺失紀錄</td>
-<td id="defects"></td>
+<td id="defects">載入中...</td>
 </tr>
 
 <tr>
 <td>施工日誌</td>
-<td id="logs"></td>
+<td id="logs">載入中...</td>
 </tr>
 
 <tr>
 <td>施工照片</td>
-<td id="photos"></td>
+<td id="photos">載入中...</td>
 </tr>
 
 </table>
 
-<script src="js/main.js"></script>
-
 <script>
+// 顯示/隱藏加載指示器
+function showLoading(show) {
+  document.getElementById("loading-overlay").style.display = show ? "flex" : "none";
+}
 
-// 顯示當前建案名稱
-document.getElementById("current-project-name").innerText = getCurrentProject();
+// 顯示提示消息
+function showToast(message, type = 'success') {
+  const toast = document.getElementById('toast-message');
+  toast.innerText = message;
+  toast.className = `toast-message ${type} show`;
+  
+  // 3秒後自動隱藏
+  setTimeout(() => {
+    toast.classList.remove('show');
+  }, 3000);
+}
 
-// 使用建案隔離的數據讀取方式
-let defects = getProjectData("defects");
-let logs = getProjectData("logs");
-let photos = getProjectData("photos");
+// 頁面加載時初始化
+document.addEventListener('DOMContentLoaded', initData);
 
-document.getElementById("defects").innerText = defects.length;
-document.getElementById("logs").innerText = logs.length;
-document.getElementById("photos").innerText = photos.length;
-
+// 初始化數據
+async function initData() {
+  try {
+    showLoading(true);
+    
+    // 獲取當前建案名稱
+    const currentProjectName = await getCurrentProject();
+    document.getElementById("current-project-name").innerText = currentProjectName;
+    
+    // 非同步獲取各項數據
+    const defectsData = await getProjectData("defects");
+    const logsData = await getProjectData("logs");
+    const photosData = await getProjectData("photos");
+    
+    // 確保獲取的數據是數組
+    const defects = Array.isArray(defectsData) ? defectsData : [];
+    const logs = Array.isArray(logsData) ? logsData : [];
+    const photos = Array.isArray(photosData) ? photosData : [];
+    
+    // 更新頁面顯示
+    document.getElementById("defects").innerText = defects.length;
+    document.getElementById("logs").innerText = logs.length;
+    document.getElementById("photos").innerText = photos.length;
+    
+    showLoading(false);
+  } catch (error) {
+    console.error("初始化數據失敗:", error);
+    showToast("載入數據失敗，請刷新頁面重試", "error");
+    
+    // 更新頁面顯示為錯誤狀態
+    document.getElementById("current-project-name").innerText = "載入失敗";
+    document.getElementById("defects").innerText = "錯誤";
+    document.getElementById("logs").innerText = "錯誤";
+    document.getElementById("photos").innerText = "錯誤";
+    
+    showLoading(false);
+  }
+}
 </script>
 
 </body>
