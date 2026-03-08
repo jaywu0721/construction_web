@@ -4,6 +4,15 @@
 <meta charset="UTF-8">
 <title>人員出工</title>
 <link rel="stylesheet" href="css/style.css">
+<!-- Firebase SDK 引入 (使用兼容模式) -->
+<script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore-compat.js"></script>
+
+<!-- 引入 Firebase 配置檔案 -->
+<script src="js/firebase-config.js"></script>
+
+<!-- 引入主要JS檔案 -->
+<script src="js/main.js"></script>
 <style>
   .container {
     display: flex;
@@ -55,18 +64,64 @@
   .edit-form button {
     margin-right: 5px;
   }
+  .current-project {
+    font-size: 18px;
+    font-weight: bold;
+    margin-bottom: 20px;
+    color: #3a7bd5;
+  }
+  .toast-message {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background-color: #4CAF50;
+    color: white;
+    padding: 15px 20px;
+    border-radius: 5px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+    z-index: 1000;
+    transition: opacity 0.5s, transform 0.5s;
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  .toast-message.show {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  .toast-message.success {
+    background-color: #4CAF50;
+  }
+  .toast-message.error {
+    background-color: #f44336;
+  }
+  .loading {
+    display: none;
+    text-align: center;
+    padding: 20px;
+    font-size: 16px;
+    color: #666;
+  }
+  .loading.active {
+    display: block;
+  }
 </style>
 </head>
 
 <body>
 
+<!-- 提示消息容器 -->
+<div id="toast-message" class="toast-message"></div>
+
 <button onclick="go('index.html')">回首頁</button>
 
-<h2>人員出工</h2>
+<h2>人出工</h2>
 <!-- 顯示當前建案 -->
 <div class="current-project">
-  當前建案: <span id="current-project-name"></span>
+  當前建案: <span id="current-project-name">載入中...</span>
 </div>
+
+<!-- 載入中提示 -->
+<div id="loading-indicator" class="loading active">資料載入中，請稍候...</div>
 
 <div class="container">
   <div class="main-content">
@@ -127,25 +182,70 @@
   </div>
 </div>
 
-<script src="js/main.js"></script>
-
 <script>
-// 使用建案隔離的數據存取方式
-let workers = getProjectData("workers");
-let workerTypes = getProjectData("workerTypes");
-// 新增工項和公司關聯數據
-let itemCompanyData = getProjectData("itemCompanyData") || [];
+// 初始化變數
+let workers = [];
+let workerTypes = [];
+let itemCompanyData = [];
 let currentFilter = 'all';
-// 記錄當前正在編輯的工項索引
 let currentEditIndex = -1;
+let currentProjectName = "載入中...";
 
-// 顯示當前建案名稱
-document.getElementById("current-project-name").innerText = getCurrentProject();
+// 顯示提示消息
+function showToast(message, type = 'success') {
+  const toast = document.getElementById('toast-message');
+  toast.innerText = message;
+  toast.className = `toast-message ${type} show`;
+  
+  // 3秒後自動隱藏
+  setTimeout(() => {
+    toast.classList.remove('show');
+  }, 3000);
+}
 
-function save(){
-  saveProjectData("workers", workers);
-  saveProjectData("workerTypes", workerTypes);
-  saveProjectData("itemCompanyData", itemCompanyData);
+// 頁面加載時初始化數據
+async function initData() {
+  try {
+    // 顯示載入中提示
+    document.getElementById('loading-indicator').classList.add('active');
+    
+    // 獲取當前建案名稱
+    currentProjectName = await getCurrentProject();
+    document.getElementById("current-project-name").innerText = currentProjectName;
+    
+    // 獲取數據
+    const workersData = await getProjectData("workers");
+    const workerTypesData = await getProjectData("workerTypes");
+    const itemCompanyDataResult = await getProjectData("itemCompanyData");
+    
+    // 確保數據是數組
+    workers = Array.isArray(workersData) ? workersData : [];
+    workerTypes = Array.isArray(workerTypesData) ? workerTypesData : [];
+    itemCompanyData = Array.isArray(itemCompanyDataResult) ? itemCompanyDataResult : [];
+    
+    // 隱藏載入中提示
+    document.getElementById('loading-indicator').classList.remove('active');
+    
+    // 渲染頁面
+    render();
+  } catch (error) {
+    console.error("初始化數據失敗:", error);
+    showToast("載入數據失敗，請刷新頁面重試", "error");
+    document.getElementById('loading-indicator').classList.remove('active');
+  }
+}
+
+async function save(){
+  try {
+    await saveProjectData("workers", workers);
+    await saveProjectData("workerTypes", workerTypes);
+    await saveProjectData("itemCompanyData", itemCompanyData);
+    return true;
+  } catch (error) {
+    console.error("保存數據失敗:", error);
+    showToast("保存失敗，請重試", "error");
+    return false;
+  }
 }
 
 function render(){
@@ -194,9 +294,9 @@ function renderItemCompanyList() {
       <div class="item-company-pair">
         <div class="edit-form">
           <div>工項名稱:</div>
-          <input id="edit-item-${index}" value="${pair.item}">
+          <input id="edit-item-${index}" value="${pair.item || ''}">
           <div>公司名稱:</div>
-          <input id="edit-company-${index}" value="${pair.company}">
+          <input id="edit-company-${index}" value="${pair.company || ''}">
           <div>
             <button onclick="saveEdit(${index})">保存</button>
             <button onclick="cancelEdit()">取消</button>
@@ -207,8 +307,8 @@ function renderItemCompanyList() {
     } else {
       html += `
       <div class="item-company-pair">
-        <div><strong>工項:</strong> ${pair.item}</div>
-        <div><strong>公司:</strong> ${pair.company}</div>
+        <div><strong>工項:</strong> ${pair.item || ''}</div>
+        <div><strong>公司:</strong> ${pair.company || ''}</div>
         <div>
           <button onclick="editItemCompany(${index})">編輯</button>
           <button onclick="removeItemCompany(${index})">刪除</button>
@@ -222,7 +322,7 @@ function renderItemCompanyList() {
 }
 
 // 新增工項與公司
-function addItemCompany() {
+async function addItemCompany() {
   const itemName = document.getElementById("item-name").value.trim();
   const companyName = document.getElementById("company-name").value.trim();
   
@@ -243,8 +343,11 @@ function addItemCompany() {
   
   itemCompanyData.push({ item: itemName, company: companyName });
   
-  save();
-  render();
+  const saved = await save();
+  if (saved) {
+    showToast("工項與公司新增成功");
+    render();
+  }
   
   // 清空輸入欄位
   document.getElementById("item-name").value = "";
@@ -264,7 +367,7 @@ function cancelEdit() {
 }
 
 // 保存編輯
-function saveEdit(index) {
+async function saveEdit(index) {
   const newItemName = document.getElementById(`edit-item-${index}`).value.trim();
   const newCompanyName = document.getElementById(`edit-company-${index}`).value.trim();
   
@@ -314,16 +417,22 @@ function saveEdit(index) {
   // 結束編輯狀態
   currentEditIndex = -1;
   
-  save();
-  render();
+  const saved = await save();
+  if (saved) {
+    showToast("工項與公司已更新");
+    render();
+  }
 }
 
 // 刪除工項與公司
-function removeItemCompany(index) {
+async function removeItemCompany(index) {
   if (confirm(`確定要刪除 "${itemCompanyData[index].item}" - "${itemCompanyData[index].company}" 這組工項與公司嗎？`)) {
     itemCompanyData.splice(index, 1);
-    save();
-    render();
+    const saved = await save();
+    if (saved) {
+      showToast("工項與公司已刪除", "error");
+      render();
+    }
   }
 }
 
@@ -335,6 +444,10 @@ function filterRecords(filter) {
 
 // 獲取篩選後的記錄
 function getFilteredWorkers() {
+  if (!Array.isArray(workers)) {
+    return [];
+  }
+  
   if (currentFilter === 'all') {
     return [...workers];
   }
@@ -369,16 +482,18 @@ function renderTypeOptions() {
   let options = `<option value="" disabled selected>請選擇工項</option>`;
   
   // 只使用從工項管理中獲取的工項
-  const uniqueItems = [...new Set(itemCompanyData.map(pair => pair.item))];
-  
-  uniqueItems.forEach(item => {
-    options += `<option value="${item}">${item}</option>`;
-  });
+  if (Array.isArray(itemCompanyData)) {
+    const uniqueItems = [...new Set(itemCompanyData.map(pair => pair.item || "").filter(Boolean))];
+    
+    uniqueItems.forEach(item => {
+      options += `<option value="${item}">${item}</option>`;
+    });
+  }
   
   document.getElementById("type").innerHTML = options;
 }
 
-function addWorker(){
+async function addWorker(){
   // 獲取工項值
   const typeSelect = document.getElementById("type");
   const typeValue = typeSelect.value;
@@ -407,8 +522,11 @@ function addWorker(){
     content: content.value // 工作內容
   });
 
-  save();
-  render();
+  const saved = await save();
+  if (saved) {
+    showToast("出工紀錄已新增");
+    render();
+  }
   
   // 清空輸入欄位
   date.value = "";
@@ -417,14 +535,17 @@ function addWorker(){
   content.value = "";
 }
 
-function remove(i){
+async function remove(i){
   workers.splice(i,1);
-  save();
-  render();
+  const saved = await save();
+  if (saved) {
+    showToast("出工紀錄已刪除", "error");
+    render();
+  }
 }
 
-render();
-
+// 頁面載入時初始化
+document.addEventListener('DOMContentLoaded', initData);
 </script>
 
 </body>
