@@ -2,44 +2,161 @@
 <html>
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <title>PMIS工程管理系統</title>
 <link rel="stylesheet" href="css/style.css">
 <style>
+  body {
+    font-size: 16px;
+    margin: 15px;
+    padding: 0;
+    max-width: 100%;
+    overflow-x: hidden;
+  }
+  
+  h1 {
+    text-align: center;
+    font-size: 24px;
+    margin: 15px 0;
+  }
+  
+  h2 {
+    font-size: 20px;
+    margin: 15px 0;
+  }
+  
   .hidden {
     display: none;
   }
+  
   .project-list {
     margin: 20px 0;
   }
+  
   .project-item {
-    padding: 10px;
-    margin: 5px 0;
+    padding: 15px;
+    margin: 10px 0;
     border: 1px solid #ddd;
     cursor: pointer;
+    border-radius: 8px;
+    font-size: 18px;
   }
-  .project-item:hover {
+  
+  .project-item:hover,
+  .project-item:active {
     background-color: #f5f5f5;
   }
+  
   .project-item.selected {
     background-color: #e0f0ff;
     font-weight: bold;
   }
+  
   .project-form {
     margin: 20px 0;
+    display: flex;
+    flex-direction: column;
   }
+  
   .project-form input {
-    padding: 8px;
-    width: 250px;
-    margin-right: 5px;
+    padding: 15px;
+    width: 100%;
+    margin-bottom: 10px;
+    border-radius: 8px;
+    border: 1px solid #ddd;
+    font-size: 16px;
   }
+  
   .project-form button {
-    padding: 8px 15px;
+    padding: 15px;
+    border-radius: 8px;
+    background: #2d7ff9;
+    color: white;
+    border: none;
+    font-size: 16px;
+    font-weight: bold;
   }
+  
   .current-project {
     font-size: 18px;
     font-weight: bold;
-    margin-bottom: 20px;
+    margin: 15px 0 20px 0;
     color: #3a7bd5;
+    display: flex;
+    flex-direction: column;
+  }
+  
+  .current-project button {
+    margin-top: 10px;
+    padding: 12px 15px;
+    background: #2d7ff9;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 16px;
+  }
+  
+  .menu {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 15px;
+    margin-top: 20px;
+  }
+  
+  .card {
+    background: white;
+    padding: 25px;
+    border-radius: 10px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    cursor: pointer;
+    text-align: center;
+    font-size: 20px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 70px;
+  }
+  
+  .card:hover,
+  .card:active {
+    background: #eaf3ff;
+  }
+  
+  /* 大屏幕設備顯示多列 */
+  @media (min-width: 768px) {
+    body {
+      margin: 40px;
+      font-size: 16px;
+    }
+    
+    h1 {
+      font-size: 28px;
+    }
+    
+    .menu {
+      grid-template-columns: repeat(3, 1fr);
+    }
+    
+    .project-form {
+      flex-direction: row;
+      align-items: center;
+    }
+    
+    .project-form input {
+      flex: 1;
+      margin-right: 10px;
+      margin-bottom: 0;
+    }
+    
+    .current-project {
+      flex-direction: row;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    .current-project button {
+      margin-top: 0;
+    }
   }
 </style>
 </head>
@@ -63,7 +180,7 @@
 
 <div id="current-project" class="hidden">
   <div class="current-project">
-    當前建案: <span id="selected-project-name"></span>
+    <span>當前建案: <span id="selected-project-name"></span></span>
     <button onclick="changeProject()">切換建案</button>
   </div>
 </div>
