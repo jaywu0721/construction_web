@@ -14,6 +14,11 @@ firebase.initializeApp(firebaseConfig);
 // 獲取資料庫實例
 const db = firebase.firestore();
 
+// 增加快取大小，提升離線性能
+firebase.firestore().settings({
+  cacheSizeBytes: firebase.firestore.CACHE_SIZE_UNLIMITED
+});
+
 // 啟用離線持久化
 db.enablePersistence({ synchronizeTabs: true })
   .then(() => {
@@ -33,12 +38,109 @@ db.collection("connectionStatus").doc("status").onSnapshot(() => {
   if (!isConnected) {
     isConnected = true;
     console.log('Firebase 連接已恢復');
-    // 可以在這裡添加連接恢復後的操作
+    // 連接恢復時，嘗試提交所有緩衝區的寫入操作
+    if (window.bufferedWriter) {
+      window.bufferedWriter.flush();
+    }
   }
 }, (error) => {
   isConnected = false;
   console.log('Firebase 連接已斷開:', error);
 });
+
+// 批量寫入輔助函數
+async function batchWrite(operations) {
+  if (operations.length === 0) return true;
+  
+  try {
+    // Firebase 批次操作限制為每批最多 500 個操作
+    const batchSize = 500;
+    let batch = db.batch();
+    let operationCount = 0;
+    let totalOperations = 0;
+    
+    for (const op of operations) {
+      const { ref, data, type = 'set' } = op;
+      
+      if (type === 'update') {
+        batch.update(ref, data);
+      } else {
+        batch.set(ref, data);
+      }
+      
+      operationCount++;
+      totalOperations++;
+      
+      // 達到批次大小限制時，提交當前批次並創建新批次
+      if (operationCount === batchSize) {
+        await batch.commit();
+        console.log(`已提交批次操作 ${totalOperations}/${operations.length}`);
+        batch = db.batch();
+        operationCount = 0;
+      }
+    }
+    
+    // 提交剩餘的操作
+    if (operationCount > 0) {
+      await batch.commit();
+      console.log(`批量操作完成，共處理 ${operations.length} 個操作`);
+    }
+    
+    return true;
+  } catch (error) {
+    console.error('批量寫入失敗:', error);
+    return false;
+  }
+}
+
+// 緩衝區寫入類 - 合併短時間內的多次寫入操作
+class BufferedWriter {
+  constructor(timeout = 500) {
+    this.buffer = {};
+    this.timeout = timeout;
+    this.timer = null;
+  }
+
+  add(docPath, data, type = 'update') {
+    // 使用文檔路徑作為鍵，確保相同文檔的多次更新會被合併
+    this.buffer[docPath] = {
+      ref: typeof docPath === 'string' ? db.doc(docPath) : docPath,
+      data: data,
+      type: type
+    };
+    
+    // 設置定時器，延遲執行批量寫入
+    if (!this.timer) {
+      this.timer = setTimeout(() => this.flush(), this.timeout);
+    }
+  }
+
+  async flush() {
+    if (Object.keys(this.buffer).length === 0) return true;
+    
+    // 準備批量寫入操作
+    const operations = Object.values(this.buffer);
+    this.buffer = {};
+    
+    if (this.timer) {
+      clearTimeout(this.timer);
+      this.timer = null;
+    }
+    
+    // 執行批量寫入
+    try {
+      const result = await batchWrite(operations);
+      console.log(`緩衝區寫入完成，共處理 ${operations.length} 個操作`);
+      return result;
+    } catch (error) {
+      console.error('緩衝區寫入失敗:', error);
+      return false;
+    }
+  }
+}
+
+// 初始化緩衝區寫入器
+const bufferedWriter = new BufferedWriter(500); // 500ms 緩衝時間
 
 // 從 localStorage 遷移資料到 Firebase
 async function migrateDataToFirebase() {
@@ -61,7 +163,9 @@ async function migrateDataToFirebase() {
         currentProject: currentProject
       });
       
-      // 遷移每個建案的資料
+      // 遷移每個建案的資料 - 使用批量寫入提高效率
+      const operations = [];
+      
       for (const project of projects) {
         // 獲取所有與此建案相關的 localStorage 鍵
         const allKeys = Object.keys(localStorage);
@@ -75,12 +179,21 @@ async function migrateDataToFirebase() {
           const safeData = Array.isArray(data) ? data : 
                           (typeof data === 'object' ? Object.values(data).filter(Boolean) : []);
           
-          // 將資料儲存到 Firebase
-          await db.collection("projects").doc(project).collection(dataType).doc("data").set({
-            items: safeData,
-            lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
+          // 準備批量寫入操作
+          operations.push({
+            ref: db.collection("projects").doc(project).collection(dataType).doc("data"),
+            data: {
+              items: safeData,
+              lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
+            },
+            type: 'set'
           });
         }
+      }
+      
+      // 執行批量寫入
+      if (operations.length > 0) {
+        await batchWrite(operations);
       }
       
       // 標記遷移完成
@@ -124,20 +237,21 @@ async function getCurrentProjectFromFirebase() {
 }
 
 async function saveProjectsToFirebase(projects, currentProject) {
-  // 資料驗證
+  // 資料驗證 - 簡化驗證邏輯
   if (!Array.isArray(projects)) {
     console.warn('項目不是數組，轉換為空數組');
     projects = [];
   }
   
   try {
-    await db.collection("projectList").doc("projects").set({
+    // 使用緩衝區寫入而非直接寫入
+    bufferedWriter.add('projectList/projects', {
       projects: projects,
       currentProject: currentProject,
       lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
-    });
+    }, 'set');
     
-    // 同時更新localStorage作為備份
+    // 立即更新 localStorage 以保持 UI 響應
     localStorage.setItem("projects", JSON.stringify(projects));
     localStorage.setItem("currentProject", currentProject);
     
@@ -181,42 +295,57 @@ async function getProjectDataFromFirebase(projectName, dataKey) {
 }
 
 async function saveProjectDataToFirebase(projectName, dataKey, data) {
-  console.log(`嘗試保存數據到Firebase: 專案=${projectName}, 鍵=${dataKey}`, data);
-  // 資料驗證
-  let safeData = [];
+  console.log(`嘗試保存數據到Firebase: 專案=${projectName}, 鍵=${dataKey}`);
   
-  if (Array.isArray(data)) {
-    safeData = data.filter(item => item !== null && item !== undefined);
-  } else if (typeof data === 'object' && data !== null) {
-    safeData = Object.values(data).filter(item => item !== null && item !== undefined);
-  }
+  // 簡化資料驗證
+  const safeData = Array.isArray(data) ? data.filter(Boolean) : 
+                  (typeof data === 'object' && data !== null ? 
+                   Object.values(data).filter(Boolean) : []);
   
   try {
-    // 確保數據路徑存在
+    // 路徑參考
     const projectRef = db.collection("projects").doc(projectName);
+    const dataRef = projectRef.collection(dataKey).doc("data");
     
-    // 檢查專案文檔是否存在，如果不存在則創建
+    // 檢查專案文檔是否存在
     const projectDoc = await projectRef.get();
     if (!projectDoc.exists) {
+      // 如果項目文檔不存在，則創建
       await projectRef.set({
         name: projectName,
         createdAt: firebase.firestore.FieldValue.serverTimestamp()
       });
       console.log(`已創建專案文檔: ${projectName}`);
+      
+      // 數據文檔一定不存在，使用 set
+      bufferedWriter.add(dataRef, {
+        items: safeData,
+        lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
+      }, 'set');
+    } else {
+      // 檢查數據文檔是否存在
+      const dataDoc = await dataRef.get();
+      
+      if (dataDoc.exists) {
+        // 文檔存在，使用 update 而非 set，減少寫入量
+        bufferedWriter.add(dataRef, {
+          items: safeData,
+          lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
+        }, 'update');
+      } else {
+        // 數據文檔不存在，使用 set
+        bufferedWriter.add(dataRef, {
+          items: safeData,
+          lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
+        }, 'set');
+      }
     }
     
-    // 保存實際數據
-    await projectRef.collection(dataKey).doc("data").set({
-      items: safeData,
-      lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
-    });
-    
-    console.log(`數據已成功保存到Firebase: 專案=${projectName}, 鍵=${dataKey}`);
-    
-    // 同時更新localStorage作為備份
+    // 立即更新 localStorage 以提供快速回饋
     const key = `${projectName}_${dataKey}`;
     localStorage.setItem(key, JSON.stringify(safeData));
     
+    console.log(`數據已成功排入緩衝區: 專案=${projectName}, 鍵=${dataKey}`);
     return true;
   } catch (error) {
     console.error(`儲存建案資料失敗(${projectName}, ${dataKey}):`, error);
@@ -239,6 +368,10 @@ async function checkAndReconnect() {
   try {
     await db.enableNetwork();
     console.log('網絡已重新啟用');
+    // 重新連接後，嘗試提交所有緩衝區的寫入操作
+    if (bufferedWriter) {
+      await bufferedWriter.flush();
+    }
     return true;
   } catch (error) {
     console.error('重新連接失敗:', error);
@@ -249,6 +382,11 @@ async function checkAndReconnect() {
 // 強制離線模式
 async function goOffline() {
   try {
+    // 在進入離線模式前，先嘗試提交所有緩衝區的寫入操作
+    if (bufferedWriter) {
+      await bufferedWriter.flush();
+    }
+    
     await db.disableNetwork();
     console.log('網絡已禁用，進入離線模式');
     return true;
@@ -258,22 +396,53 @@ async function goOffline() {
   }
 }
 
+// 立即提交所有緩衝區寫入操作的輔助函數
+async function flushBufferedWrites() {
+  if (bufferedWriter) {
+    return await bufferedWriter.flush();
+  }
+  return true;
+}
+
 // 新增：測試 Firebase 讀寫功能
 async function testFirebaseConnection(testData = { test: "連接測試" }) {
   try {
-    // 嘗試寫入測試數據
-    await db.collection("_test").doc("connection").set({
+    // 先嘗試直接寫入測試
+    const startTime = performance.now();
+    
+    // 測試緩衝區寫入性能
+    bufferedWriter.add('_test/connection', {
       ...testData,
-      timestamp: firebase.firestore.FieldValue.serverTimestamp()
+      timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+      testType: 'buffered'
+    }, 'set');
+    
+    // 強制立即執行緩衝區操作
+    await bufferedWriter.flush();
+    
+    // 測試直接寫入性能
+    await db.collection("_test").doc("direct").set({
+      ...testData,
+      timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+      testType: 'direct'
     });
     
+    // 計算寫入時間
+    const writeTime = performance.now() - startTime;
+    
     // 嘗試讀取測試數據
+    const startReadTime = performance.now();
     const doc = await db.collection("_test").doc("connection").get();
+    const readTime = performance.now() - startReadTime;
     
     return {
       success: true,
       exists: doc.exists,
-      data: doc.data()
+      data: doc.data(),
+      performance: {
+        writeTime: writeTime.toFixed(2) + 'ms',
+        readTime: readTime.toFixed(2) + 'ms'
+      }
     };
   } catch (error) {
     console.error("Firebase 連接測試失敗:", error);
@@ -298,3 +467,5 @@ window.saveProjectDataToFirebase = saveProjectDataToFirebase;
 window.checkFirebaseConnection = checkAndReconnect;
 window.setFirebaseOffline = goOffline;
 window.testFirebaseConnection = testFirebaseConnection;
+window.bufferedWriter = bufferedWriter;
+window.flushBufferedWrites = flushBufferedWrites;
