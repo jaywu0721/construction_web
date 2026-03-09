@@ -2,6 +2,7 @@
 <html>
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>人員出工</title>
 <link rel="stylesheet" href="css/style.css">
 <!-- Firebase SDK 引入 (使用兼容模式) -->
@@ -14,25 +15,33 @@
 <!-- 引入主要JS檔案 -->
 <script src="js/main.js"></script>
 <style>
+  body {
+    font-size: 16px;
+  }
+  
   .container {
     display: flex;
+    flex-direction: column;
     gap: 20px;
   }
+  
   .main-content {
-    flex: 3;
-  }
-  .sidebar {
     flex: 1;
+  }
+  
+  .sidebar {
     padding: 20px;
     background-color: #f5f5f5;
     border-radius: 5px;
     margin-top: 20px;
   }
+  
   .sidebar h3 {
     margin-top: 0;
     border-bottom: 1px solid #ddd;
     padding-bottom: 10px;
   }
+  
   .item-company-pair {
     margin-bottom: 10px;
     padding: 5px;
@@ -40,36 +49,62 @@
     border-radius: 3px;
     border: 1px solid #ddd;
   }
+  
   .item-company-pair button {
     margin-top: 5px;
-    padding: 2px 5px;
-    font-size: 12px;
+    padding: 8px 12px;
+    font-size: 14px;
     margin-right: 5px;
   }
-  select {
-    padding: 5px;
-    width: 200px;
+  
+  select, input, button {
+    padding: 10px;
+    font-size: 16px;
+    margin-bottom: 10px;
+    border-radius: 5px;
+    border: 1px solid #ccc;
   }
+  
+  select {
+    width: 100%;
+  }
+  
+  button {
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    cursor: pointer;
+    min-width: 80px;
+  }
+  
+  button:hover {
+    background-color: #45a049;
+  }
+  
   .edit-form {
     margin-top: 5px;
     padding: 5px;
     background-color: #f9f9f9;
     border: 1px dashed #ccc;
   }
+  
   .edit-form input {
     width: 100%;
     margin-bottom: 5px;
-    padding: 3px;
+    padding: 8px;
   }
+  
   .edit-form button {
     margin-right: 5px;
   }
+  
   .current-project {
     font-size: 18px;
     font-weight: bold;
     margin-bottom: 20px;
     color: #3a7bd5;
   }
+  
   .toast-message {
     position: fixed;
     top: 20px;
@@ -84,16 +119,20 @@
     opacity: 0;
     transform: translateY(-20px);
   }
+  
   .toast-message.show {
     opacity: 1;
     transform: translateY(0);
   }
+  
   .toast-message.success {
     background-color: #4CAF50;
   }
+  
   .toast-message.error {
     background-color: #f44336;
   }
+  
   .loading {
     display: none;
     text-align: center;
@@ -101,8 +140,160 @@
     font-size: 16px;
     color: #666;
   }
+  
   .loading.active {
     display: block;
+  }
+  
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+  }
+  
+  table th, table td {
+    border: 1px solid #ddd;
+    padding: 10px;
+    text-align: left;
+  }
+  
+  table th {
+    background-color: #f2f2f2;
+  }
+  
+  /* 浮動式頁籤 */
+  .tab-button {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    padding: 15px;
+    background-color: #3a7bd5;
+    color: white;
+    border-radius: 50%;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    z-index: 100;
+    width: 60px;
+    height: 60px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 16px;
+    cursor: pointer;
+  }
+  
+  .floating-sidebar {
+    position: fixed;
+    top: 0;
+    right: -100%;
+    width: 90%;
+    max-width: 350px;
+    height: 100%;
+    background-color: white;
+    box-shadow: -5px 0 15px rgba(0,0,0,0.1);
+    z-index: 999;
+    overflow-y: auto;
+    transition: right 0.3s ease;
+    padding: 20px;
+    box-sizing: border-box;
+  }
+  
+  .floating-sidebar.show {
+    right: 0;
+  }
+  
+  .close-sidebar {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    background: none;
+    border: none;
+    font-size: 24px;
+    cursor: pointer;
+    color: #333;
+  }
+  
+  .overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0,0,0,0.5);
+    z-index: 998;
+    display: none;
+  }
+  
+  .overlay.show {
+    display: block;
+  }
+  
+  /* 表單組樣式 */
+  .form-group {
+    margin-bottom: 15px;
+  }
+  
+  .form-group label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: bold;
+  }
+  
+  /* 編輯表單樣式 */
+  .worker-edit-form {
+    background-color: #f9f9f9;
+    border: 1px solid #ddd;
+    padding: 15px;
+    border-radius: 5px;
+    margin-bottom: 15px;
+  }
+  
+  .worker-edit-form .form-group {
+    margin-bottom: 10px;
+  }
+  
+  .worker-edit-form .button-group {
+    margin-top: 15px;
+    display: flex;
+    gap: 10px;
+  }
+  
+  @media (min-width: 768px) {
+    .container {
+      flex-direction: row;
+    }
+    
+    .main-content {
+      flex: 3;
+    }
+    
+    .sidebar {
+      flex: 1;
+      display: block;
+    }
+    
+    .tab-button, .floating-sidebar {
+      display: none;
+    }
+  }
+  
+  @media (max-width: 767px) {
+    .sidebar {
+      display: none;
+    }
+    
+    table {
+      font-size: 14px;
+    }
+    
+    th, td {
+      padding: 8px 5px;
+    }
+    
+    .back-button {
+      padding: 10px 15px;
+      font-size: 16px;
+      margin-bottom: 15px;
+    }
   }
 </style>
 </head>
@@ -112,7 +303,7 @@
 <!-- 提示消息容器 -->
 <div id="toast-message" class="toast-message"></div>
 
-<button onclick="go('index.html')">回首頁</button>
+<button onclick="go('index.html')" class="back-button">回首頁</button>
 
 <h2>人員出工</h2>
 <!-- 顯示當前建案 -->
@@ -125,23 +316,57 @@
 
 <div class="container">
   <div class="main-content">
-    日期
-    <input type="date" id="date">
+    <div class="form-group">
+      <label for="date">日期</label>
+      <input type="date" id="date">
+    </div>
 
-    工項
-    <!-- 將input改為select，限制只能選擇，不能自由輸入 -->
-    <select id="type">
-      <option value="" disabled selected>請選擇工項</option>
-      <!-- 選項將由JavaScript動態生成 -->
-    </select>
+    <div class="form-group">
+      <label for="type">工項</label>
+      <select id="type">
+        <option value="" disabled selected>請選擇工項</option>
+        <!-- 選項將由JavaScript動態生成 -->
+      </select>
+    </div>
 
-    人數
-    <input id="count">
+    <div class="form-group">
+      <label for="count">人數</label>
+      <input id="count" type="number" min="1">
+    </div>
 
-    工作內容
-    <input id="content" placeholder="請輸入工作內容...">
+    <div class="form-group">
+      <label for="content">工作內容</label>
+      <input id="content" placeholder="請輸入工作內容...">
+    </div>
 
     <button onclick="addWorker()">新增</button>
+
+    <div id="edit-form-container" style="display: none;" class="worker-edit-form">
+      <h3>編輯出工紀錄</h3>
+      <div class="form-group">
+        <label for="edit-date">日期</label>
+        <input type="date" id="edit-date">
+      </div>
+      <div class="form-group">
+        <label for="edit-type">工項</label>
+        <select id="edit-type">
+          <!-- 選項將由JavaScript動態生成 -->
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="edit-count">人數</label>
+        <input id="edit-count" type="number" min="1">
+      </div>
+      <div class="form-group">
+        <label for="edit-content">工作內容</label>
+        <input id="edit-content" placeholder="請輸入工作內容...">
+      </div>
+      <div class="button-group">
+        <button onclick="saveWorkerEdit()">保存</button>
+        <button onclick="cancelWorkerEdit()" style="background-color: #f44336;">取消</button>
+        <button onclick="confirmRemove()" style="background-color: #ff9800;">刪除</button>
+      </div>
+    </div>
 
     <div style="margin-top: 20px; margin-bottom: 10px;">
       <button onclick="filterRecords('all')">全部</button>
@@ -156,7 +381,7 @@
       <th>工項</th>
       <th>人數</th>
       <th>工作內容</th>
-      <th>刪除</th>
+      <th>操作</th>
       </tr>
       </thead>
       <tbody id="list"></tbody>
@@ -166,21 +391,53 @@
   <div class="sidebar">
     <h3>工項與公司管理</h3>
     
-    <div>
-      工項名稱
+    <div class="form-group">
+      <label for="item-name">工項名稱</label>
       <input id="item-name" placeholder="輸入工項名稱">
-      
-      公司名稱
-      <input id="company-name" placeholder="輸入公司名稱">
-      
-      <button onclick="addItemCompany()">新增工項與公司</button>
     </div>
+      
+    <div class="form-group">
+      <label for="company-name">公司名稱</label>
+      <input id="company-name" placeholder="輸入公司名稱">
+    </div>
+      
+    <button onclick="addItemCompany()">新增工項與公司</button>
     
     <div id="item-company-list" style="margin-top: 20px;">
       <!-- 工項與公司列表將在這裡動態生成 -->
     </div>
   </div>
 </div>
+
+<!-- 浮動式頁籤按鈕 -->
+<div class="tab-button" id="show-sidebar-button">
+  工項<br>管理
+</div>
+
+<!-- 浮動式頁籤內容 -->
+<div class="floating-sidebar" id="floating-sidebar">
+  <button class="close-sidebar" id="close-sidebar">&times;</button>
+  <h3>工項與公司管理</h3>
+  
+  <div class="form-group">
+    <label for="item-name-mobile">工項名稱</label>
+    <input id="item-name-mobile" placeholder="輸入工項名稱">
+  </div>
+    
+  <div class="form-group">
+    <label for="company-name-mobile">公司名稱</label>
+    <input id="company-name-mobile" placeholder="輸入公司名稱">
+  </div>
+    
+  <button onclick="addItemCompanyMobile()">新增工項與公司</button>
+  
+  <div id="item-company-list-mobile" style="margin-top: 20px;">
+    <!-- 工項與公司列表將在這裡動態生成 -->
+  </div>
+</div>
+
+<!-- 背景遮罩 -->
+<div class="overlay" id="overlay"></div>
 
 <script>
 // 初始化變數
@@ -189,7 +446,9 @@ let workerTypes = [];
 let itemCompanyData = [];
 let currentFilter = 'all';
 let currentEditIndex = -1;
+let currentItemEditIndex = -1;
 let currentProjectName = "載入中...";
+let editingWorkerId = -1;
 
 // 顯示提示消息
 function showToast(message, type = 'success') {
@@ -226,6 +485,12 @@ async function initData() {
     // 隱藏載入中提示
     document.getElementById('loading-indicator').classList.remove('active');
     
+    // 設置今天日期作為預設值
+    setTodayAsDefault();
+    
+    // 初始化浮動頁籤事件
+    initFloatingSidebar();
+    
     // 渲染頁面
     render();
   } catch (error) {
@@ -233,6 +498,41 @@ async function initData() {
     showToast("載入數據失敗，請刷新頁面重試", "error");
     document.getElementById('loading-indicator').classList.remove('active');
   }
+}
+
+// 設置今天日期作為預設值
+function setTodayAsDefault() {
+  const today = new Date();
+  const yyyy = today.getFullYear();
+  const mm = String(today.getMonth() + 1).padStart(2, '0');
+  const dd = String(today.getDate()).padStart(2, '0');
+  
+  const todayFormatted = `${yyyy}-${mm}-${dd}`;
+  document.getElementById('date').value = todayFormatted;
+}
+
+// 初始化浮動頁籤
+function initFloatingSidebar() {
+  const showButton = document.getElementById('show-sidebar-button');
+  const closeButton = document.getElementById('close-sidebar');
+  const sidebar = document.getElementById('floating-sidebar');
+  const overlay = document.getElementById('overlay');
+  
+  showButton.addEventListener('click', () => {
+    sidebar.classList.add('show');
+    overlay.classList.add('show');
+    renderItemCompanyListMobile();
+  });
+  
+  closeButton.addEventListener('click', () => {
+    sidebar.classList.remove('show');
+    overlay.classList.remove('show');
+  });
+  
+  overlay.addEventListener('click', () => {
+    sidebar.classList.remove('show');
+    overlay.classList.remove('show');
+  });
 }
 
 async function save(){
@@ -255,7 +555,7 @@ function render(){
   const filteredWorkers = getFilteredWorkers();
 
   filteredWorkers.forEach((w,i)=>{
-    // 使用原始索引，確保刪除功能正確
+    // 使用原始索引，確保編輯功能正確
     const originalIndex = workers.findIndex(worker => 
       worker.date === w.date && 
       worker.type === w.type && 
@@ -269,7 +569,7 @@ function render(){
       <td>${w.type || ''}</td>
       <td>${w.count || ''}</td>
       <td>${w.content || ''}</td>
-      <td><button onclick="remove(${originalIndex})">刪除</button></td>
+      <td><button onclick="editWorker(${originalIndex})">編輯</button></td>
     </tr>
     `;
   });
@@ -278,9 +578,78 @@ function render(){
   
   // 渲染工項下拉選單
   renderTypeOptions();
+  renderEditTypeOptions();
   
   // 渲染工項與公司列表
   renderItemCompanyList();
+}
+
+// 編輯工人記錄
+function editWorker(index) {
+  editingWorkerId = index;
+  const worker = workers[index];
+  
+  // 填充編輯表單
+  document.getElementById('edit-date').value = worker.date || '';
+  document.getElementById('edit-type').value = worker.type || '';
+  document.getElementById('edit-count').value = worker.count || '';
+  document.getElementById('edit-content').value = worker.content || '';
+  
+  // 顯示編輯表單
+  document.getElementById('edit-form-container').style.display = 'block';
+  
+  // 滾動到編輯表單
+  document.getElementById('edit-form-container').scrollIntoView({ behavior: 'smooth' });
+}
+
+// 保存工人記錄編輯
+async function saveWorkerEdit() {
+  // 確認是否要保存編輯
+  if (!confirm('確定要保存這些修改嗎？')) {
+    return;
+  }
+  
+  if (editingWorkerId >= 0) {
+    const editDate = document.getElementById('edit-date').value;
+    const editType = document.getElementById('edit-type').value;
+    const editCount = document.getElementById('edit-count').value;
+    const editContent = document.getElementById('edit-content').value;
+    
+    // 驗證
+    if (!editDate || !editType || !editCount) {
+      alert('日期、工項和人數都不能為空！');
+      return;
+    }
+    
+    // 更新記錄
+    workers[editingWorkerId] = {
+      date: editDate,
+      type: editType,
+      count: editCount,
+      content: editContent
+    };
+    
+    const saved = await save();
+    if (saved) {
+      showToast("記錄已更新");
+      cancelWorkerEdit();
+      render();
+    }
+  }
+}
+
+// 取消工人記錄編輯
+function cancelWorkerEdit() {
+  editingWorkerId = -1;
+  document.getElementById('edit-form-container').style.display = 'none';
+}
+
+// 確認刪除工人記錄
+function confirmRemove() {
+  if (confirm("確定要刪除這條記錄嗎？此操作不可撤銷。")) {
+    remove(editingWorkerId);
+    cancelWorkerEdit();
+  }
 }
 
 // 渲染工項與公司列表
@@ -289,7 +658,7 @@ function renderItemCompanyList() {
   
   itemCompanyData.forEach((pair, index) => {
     // 檢查當前索引是否為編輯狀態
-    if (index === currentEditIndex) {
+    if (index === currentItemEditIndex) {
       html += `
       <div class="item-company-pair">
         <div class="edit-form">
@@ -319,6 +688,123 @@ function renderItemCompanyList() {
   });
   
   document.getElementById("item-company-list").innerHTML = html;
+}
+
+// 渲染移動版工項與公司列表
+function renderItemCompanyListMobile() {
+  let html = "";
+  
+  itemCompanyData.forEach((pair, index) => {
+    html += `
+    <div class="item-company-pair">
+      <div><strong>工項:</strong> ${pair.item || ''}</div>
+      <div><strong>公司:</strong> ${pair.company || ''}</div>
+      <div>
+        <button onclick="editItemCompanyMobile(${index})">編輯</button>
+        <button onclick="removeItemCompanyMobile(${index})">刪除</button>
+      </div>
+    </div>
+    `;
+  });
+  
+  document.getElementById("item-company-list-mobile").innerHTML = html;
+}
+
+// 新增工項與公司 (移動版)
+function addItemCompanyMobile() {
+  const itemName = document.getElementById("item-name-mobile").value.trim();
+  const companyName = document.getElementById("company-name-mobile").value.trim();
+  
+  if (!itemName || !companyName) {
+    alert("工項名稱和公司名稱都不能為空!");
+    return;
+  }
+  
+  // 檢查是否已存在相同的工項和公司組合
+  const exists = itemCompanyData.some(pair => 
+    pair.item === itemName && pair.company === companyName
+  );
+  
+  if (exists) {
+    alert("此工項與公司組合已存在!");
+    return;
+  }
+  
+  itemCompanyData.push({ item: itemName, company: companyName });
+  
+  save().then(saved => {
+    if (saved) {
+      showToast("工項與公司新增成功");
+      render();
+      renderItemCompanyListMobile();
+      document.getElementById("item-name-mobile").value = "";
+      document.getElementById("company-name-mobile").value = "";
+    }
+  });
+}
+
+// 編輯工項與公司 (移動版)
+function editItemCompanyMobile(index) {
+  const pair = itemCompanyData[index];
+  const newItem = prompt("請輸入新的工項名稱:", pair.item);
+  if (newItem !== null) {
+    const newCompany = prompt("請輸入新的公司名稱:", pair.company);
+    if (newCompany !== null) {
+      // 檢查是否與其他記錄重複
+      const isDuplicate = itemCompanyData.some((p, idx) => 
+        idx !== index && p.item === newItem && p.company === newCompany
+      );
+      
+      if (isDuplicate) {
+        alert("此工項與公司組合已存在!");
+        return;
+      }
+      
+      const oldItemName = itemCompanyData[index].item;
+      itemCompanyData[index] = { item: newItem, company: newCompany };
+      
+      // 如果工項名稱已更改，需要更新相關記錄
+      if (oldItemName !== newItem) {
+        // 更新workers記錄中的工項名稱
+        workers.forEach(worker => {
+          if (worker.type === oldItemName) {
+            worker.type = newItem;
+          }
+        });
+        
+        // 更新workerTypes中的工項名稱
+        const oldTypeIndex = workerTypes.indexOf(oldItemName);
+        if (oldTypeIndex !== -1) {
+          workerTypes[oldTypeIndex] = newItem;
+        } else {
+          // 如果不存在，添加新工項
+          workerTypes.push(newItem);
+        }
+      }
+      
+      save().then(saved => {
+        if (saved) {
+          showToast("工項與公司已更新");
+          render();
+          renderItemCompanyListMobile();
+        }
+      });
+    }
+  }
+}
+
+// 刪除工項與公司 (移動版)
+function removeItemCompanyMobile(index) {
+  if (confirm(`確定要刪除 "${itemCompanyData[index].item}" - "${itemCompanyData[index].company}" 這組工項與公司嗎？`)) {
+    itemCompanyData.splice(index, 1);
+    save().then(saved => {
+      if (saved) {
+        showToast("工項與公司已刪除", "error");
+        render();
+        renderItemCompanyListMobile();
+      }
+    });
+  }
 }
 
 // 新增工項與公司
@@ -356,13 +842,13 @@ async function addItemCompany() {
 
 // 開始編輯工項與公司
 function editItemCompany(index) {
-  currentEditIndex = index;
+  currentItemEditIndex = index;
   render();
 }
 
 // 取消編輯
 function cancelEdit() {
-  currentEditIndex = -1;
+  currentItemEditIndex = -1;
   render();
 }
 
@@ -415,7 +901,7 @@ async function saveEdit(index) {
   }
   
   // 結束編輯狀態
-  currentEditIndex = -1;
+  currentItemEditIndex = -1;
   
   const saved = await save();
   if (saved) {
@@ -477,7 +963,7 @@ function getFilteredWorkers() {
   return [...workers];
 }
 
-// 渲染工項下拉選單 (修改為只顯示從工項與公司管理中建立的工項)
+// 渲染工項下拉選單
 function renderTypeOptions() {
   let options = `<option value="" disabled selected>請選擇工項</option>`;
   
@@ -491,6 +977,22 @@ function renderTypeOptions() {
   }
   
   document.getElementById("type").innerHTML = options;
+}
+
+// 為編輯表單渲染工項下拉選單
+function renderEditTypeOptions() {
+  let options = `<option value="" disabled>請選擇工項</option>`;
+  
+  // 只使用從工項管理中獲取的工項
+  if (Array.isArray(itemCompanyData)) {
+    const uniqueItems = [...new Set(itemCompanyData.map(pair => pair.item || "").filter(Boolean))];
+    
+    uniqueItems.forEach(item => {
+      options += `<option value="${item}">${item}</option>`;
+    });
+  }
+  
+  document.getElementById("edit-type").innerHTML = options;
 }
 
 async function addWorker(){
@@ -528,8 +1030,7 @@ async function addWorker(){
     render();
   }
   
-  // 清空輸入欄位
-  date.value = "";
+  // 只清空部分輸入欄位，保留日期
   typeSelect.selectedIndex = 0; // 重置選擇
   count.value = "";
   content.value = "";
