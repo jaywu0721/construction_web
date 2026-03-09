@@ -104,6 +104,37 @@
   .loading.active {
     display: block;
   }
+  /* 添加 NavigationButton 樣式 */
+  .navigation-button {
+    position: relative;
+    padding: 8px 15px;
+    margin: 5px;
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+  }
+  .navigation-button:disabled {
+    background-color: #cccccc;
+    cursor: not-allowed;
+  }
+  .navigation-button .spinner {
+    display: none;
+    width: 12px;
+    height: 12px;
+    margin-left: 8px;
+    border: 2px solid rgba(255,255,255,0.3);
+    border-radius: 50%;
+    border-top-color: #fff;
+    animation: spin 1s ease-in-out infinite;
+  }
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+  .navigation-button.syncing .spinner {
+    display: inline-block;
+  }
 </style>
 </head>
 
@@ -112,7 +143,10 @@
 <!-- 提示消息容器 -->
 <div id="toast-message" class="toast-message"></div>
 
-<button onclick="go('index.html')">回首頁</button>
+<!-- 修改原按鈕，添加ID和同步狀態指示器 -->
+<button id="homeButton" class="navigation-button" onclick="goWithSync('index.html')">回首頁
+  <span class="spinner"></span>
+</button>
 
 <h2>人員出工</h2>
 <!-- 顯示當前建案 -->
@@ -190,6 +224,8 @@ let itemCompanyData = [];
 let currentFilter = 'all';
 let currentEditIndex = -1;
 let currentProjectName = "載入中...";
+let dataModified = false; // 追蹤是否有資料被修改
+let dataLoaded = false; // 追蹤資料是否已完成載入
 
 // 顯示提示消息
 function showToast(message, type = 'success') {
@@ -209,14 +245,24 @@ async function initData() {
     // 顯示載入中提示
     document.getElementById('loading-indicator').classList.add('active');
     
+    // 測試Firebase連接
+    if (typeof testFirebaseConnection === 'function') {
+      const connectionTest = await testFirebaseConnection();
+      console.log('Firebase連接測試結果:', connectionTest);
+    }
+    
     // 獲取當前建案名稱
     currentProjectName = await getCurrentProject();
-    document.getElementById("current-project-name").innerText = currentProjectName;
+    document.getElementById("current-project-name").innerText = currentProjectName || "無建案";
     
     // 獲取數據
     const workersData = await getProjectData("workers");
     const workerTypesData = await getProjectData("workerTypes");
     const itemCompanyDataResult = await getProjectData("itemCompanyData");
+    
+    console.log('讀取workers數據:', workersData);
+    console.log('讀取workerTypes數據:', workerTypesData);
+    console.log('讀取itemCompanyData數據:', itemCompanyDataResult);
     
     // 確保數據是數組
     workers = Array.isArray(workersData) ? workersData : [];
@@ -225,6 +271,10 @@ async function initData() {
     
     // 隱藏載入中提示
     document.getElementById('loading-indicator').classList.remove('active');
+    
+    // 標記數據已載入
+    dataLoaded = true;
+    dataModified = false;
     
     // 渲染頁面
     render();
@@ -235,18 +285,56 @@ async function initData() {
   }
 }
 
+// 增強版save函數，確保數據被提交到Firebase
 async function save(){
   try {
-    await saveProjectData("workers", workers);
-    await saveProjectData("workerTypes", workerTypes);
-    await saveProjectData("itemCompanyData", itemCompanyData);
-    return true;
+    document.getElementById('loading-indicator').classList.add('active');
+    
+    // 資料已被修改
+    dataModified = true;
+    
+    // 保存數據
+    let result1 = await saveProjectData("workers", workers);
+    let result2 = await saveProjectData("workerTypes", workerTypes);
+    let result3 = await saveProjectData("itemCompanyData", itemCompanyData);
+    
+    // 強制同步所有待處理的寫入
+    if (typeof syncAllPendingWrites === 'function') {
+      await syncAllPendingWrites();
+    } else if (typeof flushBufferedWrites === 'function') {
+      await flushBufferedWrites();
+    }
+    
+    document.getElementById('loading-indicator').classList.remove('active');
+    return result1 && result2 && result3;
   } catch (error) {
     console.error("保存數據失敗:", error);
     showToast("保存失敗，請重試", "error");
+    document.getElementById('loading-indicator').classList.remove('active');
     return false;
   }
 }
+
+// 確保在頁面關閉前同步所有數據
+window.addEventListener('beforeunload', async (event) => {
+  // 只有當數據被修改且已完成初始載入時，才進行處理
+  if (dataModified && dataLoaded) {
+    // 顯示提示
+    event.preventDefault();
+    event.returnValue = '';
+    
+    // 嘗試同步數據
+    try {
+      if (typeof syncAllPendingWrites === 'function') {
+        await syncAllPendingWrites();
+      } else if (typeof flushBufferedWrites === 'function') {
+        await flushBufferedWrites();
+      }
+    } catch (e) {
+      console.error('頁面卸載前同步失敗:', e);
+    }
+  }
+});
 
 function render(){
   let html = "";
@@ -544,8 +632,82 @@ async function remove(i){
   }
 }
 
+// 新增：確保在跳轉前同步所有未提交的資料
+async function goWithSync(page) {
+  // 禁用按鈕防止重複點擊
+  const button = document.getElementById('homeButton');
+  button.disabled = true;
+  button.classList.add('syncing');
+  
+  // 顯示載入提示
+  document.getElementById('loading-indicator').classList.add('active');
+  showToast("正在同步資料，請稍候...", "success");
+  
+  try {
+    // 只有當數據被修改時才進行同步
+    if (dataModified && dataLoaded) {
+      console.log('執行同步操作...');
+      
+      // 確保數據已被保存
+      await save();
+      
+      // 強制同步所有待處理的寫入
+      if (typeof syncAllPendingWrites === 'function') {
+        console.log('執行syncAllPendingWrites...');
+        await syncAllPendingWrites();
+      } else if (typeof flushBufferedWrites === 'function') {
+        console.log('執行flushBufferedWrites...');
+        await flushBufferedWrites();
+      }
+      
+      // 驗證連接
+      if (typeof checkAndReconnect === 'function') {
+        console.log('檢查並重新連接...');
+        await checkAndReconnect();
+      }
+      
+      console.log('同步完成，準備跳轉');
+      showToast("資料同步完成", "success");
+    }
+    
+    // 清除數據緩存
+    if (typeof clearProjectCache === 'function') {
+      clearProjectCache();
+    }
+    
+    // 完成後跳轉
+    setTimeout(() => {
+      window.location.href = page;
+    }, 1000); // 延遲1秒，確保消息顯示
+  } catch (error) {
+    console.error("同步資料失敗:", error);
+    showToast("資料同步失敗，請再試一次", "error");
+    
+    // 重新啟用按鈕
+    button.disabled = false;
+    button.classList.remove('syncing');
+    document.getElementById('loading-indicator').classList.remove('active');
+  }
+}
+
 // 頁面載入時初始化
 document.addEventListener('DOMContentLoaded', initData);
+
+// 添加定期保存機制，確保不會丟失數據
+setInterval(async () => {
+  if (dataModified && dataLoaded) {
+    console.log('執行定期數據同步...');
+    try {
+      if (typeof syncAllPendingWrites === 'function') {
+        await syncAllPendingWrites();
+      } else if (typeof flushBufferedWrites === 'function') {
+        await flushBufferedWrites();
+      }
+    } catch (e) {
+      console.error('定期同步失敗:', e);
+    }
+  }
+}, 60000); // 每分鐘檢查一次
 </script>
 
 </body>
