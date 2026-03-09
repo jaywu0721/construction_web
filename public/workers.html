@@ -257,6 +257,52 @@
     gap: 10px;
   }
   
+  /* 備註選項樣式 */
+  .note-options {
+    margin-top: 10px;
+    padding: 10px;
+    background-color: #f0f8ff;
+    border-radius: 5px;
+    border: 1px solid #ccc;
+  }
+  
+  .note-option {
+    margin-right: 15px;
+    margin-bottom: 5px;
+    display: inline-flex;
+    align-items: center;
+  }
+  
+  .note-option input[type="radio"] {
+    margin-right: 5px;
+  }
+  
+  /* 根據備註顯示的額外字段 */
+  .extra-fields {
+    background-color: #f0f8ff;
+    padding: 10px;
+    margin-top: 10px;
+    border-radius: 5px;
+    border: 1px solid #ccc;
+  }
+  
+  .extra-fields h4 {
+    margin-top: 0;
+    margin-bottom: 10px;
+    color: #3a7bd5;
+  }
+  
+  /* 標籤樣式 */
+  .note-tag {
+    display: inline-block;
+    padding: 3px 8px;
+    background-color: #3a7bd5;
+    color: white;
+    border-radius: 12px;
+    font-size: 12px;
+    margin-left: 5px;
+  }
+  
   @media (min-width: 768px) {
     .container {
       flex-direction: row;
@@ -294,6 +340,12 @@
       font-size: 16px;
       margin-bottom: 15px;
     }
+    
+    /* 確保在手機上選項可以豎直排列 */
+    .note-option {
+      display: block;
+      margin-bottom: 10px;
+    }
   }
 </style>
 </head>
@@ -323,7 +375,7 @@
 
     <div class="form-group">
       <label for="type">工項</label>
-      <select id="type">
+      <select id="type" onchange="handleTypeChange()">
         <option value="" disabled selected>請選擇工項</option>
         <!-- 選項將由JavaScript動態生成 -->
       </select>
@@ -332,6 +384,47 @@
     <div class="form-group">
       <label for="count">人數</label>
       <input id="count" type="number" min="1">
+    </div>
+    
+    <!-- 根據選定工項的備註類型顯示不同的額外欄位 -->
+    <div id="material-fields" style="display: none;" class="extra-fields">
+      <h4>材料相關資訊</h4>
+      <div class="form-group">
+        <label for="material-name">材料名稱</label>
+        <input id="material-name" placeholder="請輸入材料名稱">
+      </div>
+      <div class="form-group">
+        <label for="material-quantity">數量</label>
+        <input id="material-quantity" type="number" min="0" step="0.01">
+      </div>
+      <div class="form-group">
+        <label for="material-unit">單位</label>
+        <input id="material-unit" placeholder="例如：個、噸、立方米">
+      </div>
+      <div class="form-group">
+        <label for="material-purpose">用途</label>
+        <input id="material-purpose" placeholder="請說明此材料的用途">
+      </div>
+    </div>
+    
+    <div id="worker-group-fields" style="display: none;" class="extra-fields">
+      <h4>組工工程相關資訊</h4>
+      <div class="form-group">
+        <label for="rough-worker-count">粗工人數</label>
+        <input id="rough-worker-count" type="number" min="0">
+      </div>
+      <div class="form-group">
+        <label for="stone-worker-count">打石人數</label>
+        <input id="stone-worker-count" type="number" min="0">
+      </div>
+    </div>
+    
+    <div id="day-labor-fields" style="display: none;" class="extra-fields">
+      <h4>點工相關資訊</h4>
+      <div class="form-group">
+        <label for="day-labor-count">點工數量 (非必填)</label>
+        <input id="day-labor-count" type="number" min="0">
+      </div>
     </div>
 
     <div class="form-group">
@@ -349,7 +442,7 @@
       </div>
       <div class="form-group">
         <label for="edit-type">工項</label>
-        <select id="edit-type">
+        <select id="edit-type" onchange="handleEditTypeChange()">
           <!-- 選項將由JavaScript動態生成 -->
         </select>
       </div>
@@ -357,6 +450,48 @@
         <label for="edit-count">人數</label>
         <input id="edit-count" type="number" min="1">
       </div>
+      
+      <!-- 編輯表單中的額外欄位 -->
+      <div id="edit-material-fields" style="display: none;" class="extra-fields">
+        <h4>材料相關資訊</h4>
+        <div class="form-group">
+          <label for="edit-material-name">材料名稱</label>
+          <input id="edit-material-name" placeholder="請輸入材料名稱">
+        </div>
+        <div class="form-group">
+          <label for="edit-material-quantity">數量</label>
+          <input id="edit-material-quantity" type="number" min="0" step="0.01">
+        </div>
+        <div class="form-group">
+          <label for="edit-material-unit">單位</label>
+          <input id="edit-material-unit" placeholder="例如：個、噸、立方米">
+        </div>
+        <div class="form-group">
+          <label for="edit-material-purpose">用途</label>
+          <input id="edit-material-purpose" placeholder="請說明此材料的用途">
+        </div>
+      </div>
+      
+      <div id="edit-worker-group-fields" style="display: none;" class="extra-fields">
+        <h4>組工工程相關資訊</h4>
+        <div class="form-group">
+          <label for="edit-rough-worker-count">粗工人數</label>
+          <input id="edit-rough-worker-count" type="number" min="0">
+        </div>
+        <div class="form-group">
+          <label for="edit-stone-worker-count">打石人數</label>
+          <input id="edit-stone-worker-count" type="number" min="0">
+        </div>
+      </div>
+      
+      <div id="edit-day-labor-fields" style="display: none;" class="extra-fields">
+        <h4>點工相關資訊</h4>
+        <div class="form-group">
+          <label for="edit-day-labor-count">點工數量 (非必填)</label>
+          <input id="edit-day-labor-count" type="number" min="0">
+        </div>
+      </div>
+      
       <div class="form-group">
         <label for="edit-content">工作內容</label>
         <input id="edit-content" placeholder="請輸入工作內容...">
@@ -400,6 +535,27 @@
       <label for="company-name">公司名稱</label>
       <input id="company-name" placeholder="輸入公司名稱">
     </div>
+    
+    <!-- 備註選項 -->
+    <div class="note-options">
+      <label>備註選項:</label>
+      <div class="note-option">
+        <input type="radio" name="note-type" value="none" id="note-none" checked>
+        <label for="note-none">無備註</label>
+      </div>
+      <div class="note-option">
+        <input type="radio" name="note-type" value="group" id="note-group">
+        <label for="note-group">組工工程</label>
+      </div>
+      <div class="note-option">
+        <input type="radio" name="note-type" value="material" id="note-material">
+        <label for="note-material">材料</label>
+      </div>
+      <div class="note-option">
+        <input type="radio" name="note-type" value="dayLabor" id="note-day-labor">
+        <label for="note-day-labor">有無點工</label>
+      </div>
+    </div>
       
     <button onclick="addItemCompany()">新增工項與公司</button>
     
@@ -427,6 +583,27 @@
   <div class="form-group">
     <label for="company-name-mobile">公司名稱</label>
     <input id="company-name-mobile" placeholder="輸入公司名稱">
+  </div>
+  
+  <!-- 移動版備註選項 -->
+  <div class="note-options">
+    <label>備註選項:</label>
+    <div class="note-option">
+      <input type="radio" name="note-type-mobile" value="none" id="note-none-mobile" checked>
+      <label for="note-none-mobile">無備註</label>
+    </div>
+    <div class="note-option">
+      <input type="radio" name="note-type-mobile" value="group" id="note-group-mobile">
+      <label for="note-group-mobile">組工工程</label>
+    </div>
+    <div class="note-option">
+      <input type="radio" name="note-type-mobile" value="material" id="note-material-mobile">
+      <label for="note-material-mobile">材料</label>
+    </div>
+    <div class="note-option">
+      <input type="radio" name="note-type-mobile" value="dayLabor" id="note-day-labor-mobile">
+      <label for="note-day-labor-mobile">有無點工</label>
+    </div>
   </div>
     
   <button onclick="addItemCompanyMobile()">新增工項與公司</button>
@@ -480,7 +657,19 @@ async function initData() {
     // 確保數據是數組
     workers = Array.isArray(workersData) ? workersData : [];
     workerTypes = Array.isArray(workerTypesData) ? workerTypesData : [];
-    itemCompanyData = Array.isArray(itemCompanyDataResult) ? itemCompanyDataResult : [];
+    
+    // 確保itemCompanyData是數組並有正確的數據格式
+    if (Array.isArray(itemCompanyDataResult)) {
+      // 對舊數據進行遷移，添加備註類型字段如果不存在
+      itemCompanyData = itemCompanyDataResult.map(pair => {
+        if (!pair.hasOwnProperty('noteType')) {
+          return { ...pair, noteType: 'none' };
+        }
+        return pair;
+      });
+    } else {
+      itemCompanyData = [];
+    }
     
     // 隱藏載入中提示
     document.getElementById('loading-indicator').classList.remove('active');
@@ -563,10 +752,14 @@ function render(){
       worker.content === w.content
     );
     
+    // 獲取工項的備註類型標籤
+    const itemInfo = getItemInfo(w.type);
+    const noteTypeBadge = getNoteTypeBadge(itemInfo ? itemInfo.noteType : 'none');
+    
     html += `
     <tr>
       <td>${w.date || ''}</td>
-      <td>${w.type || ''}</td>
+      <td>${w.type || ''} ${noteTypeBadge}</td>
       <td>${w.count || ''}</td>
       <td>${w.content || ''}</td>
       <td><button onclick="editWorker(${originalIndex})">編輯</button></td>
@@ -584,16 +777,148 @@ function render(){
   renderItemCompanyList();
 }
 
+// 獲取工項資訊
+function getItemInfo(itemName) {
+  return itemCompanyData.find(item => item.item === itemName);
+}
+
+// 獲取備註類型的標籤HTML
+function getNoteTypeBadge(noteType) {
+  if (noteType === 'none') return '';
+  
+  let badgeText = '';
+  let badgeColor = '';
+  
+  switch(noteType) {
+    case 'group':
+      badgeText = '組工';
+      badgeColor = '#3a7bd5';
+      break;
+    case 'material':
+      badgeText = '材料';
+      badgeColor = '#4CAF50';
+      break;
+    case 'dayLabor':
+      badgeText = '點工';
+      badgeColor = '#ff9800';
+      break;
+  }
+  
+  return badgeText ? `<span class="note-tag" style="background-color: ${badgeColor}">${badgeText}</span>` : '';
+}
+
+// 處理工項選擇變更
+function handleTypeChange() {
+  const typeSelect = document.getElementById("type");
+  const selectedType = typeSelect.value;
+  
+  hideAllExtraFields();
+  
+  if (selectedType) {
+    const itemInfo = getItemInfo(selectedType);
+    if (itemInfo && itemInfo.noteType) {
+      showExtraFieldsByNoteType(itemInfo.noteType);
+    }
+  }
+}
+
+// 處理編輯工項選擇變更
+function handleEditTypeChange() {
+  const typeSelect = document.getElementById("edit-type");
+  const selectedType = typeSelect.value;
+  
+  hideAllEditExtraFields();
+  
+  if (selectedType) {
+    const itemInfo = getItemInfo(selectedType);
+    if (itemInfo && itemInfo.noteType) {
+      showEditExtraFieldsByNoteType(itemInfo.noteType);
+    }
+  }
+}
+
+// 隱藏所有額外欄位
+function hideAllExtraFields() {
+  document.getElementById("material-fields").style.display = "none";
+  document.getElementById("worker-group-fields").style.display = "none";
+  document.getElementById("day-labor-fields").style.display = "none";
+}
+
+// 隱藏所有編輯表單的額外欄位
+function hideAllEditExtraFields() {
+  document.getElementById("edit-material-fields").style.display = "none";
+  document.getElementById("edit-worker-group-fields").style.display = "none";
+  document.getElementById("edit-day-labor-fields").style.display = "none";
+}
+
+// 根據備註類型顯示相應的額外欄位
+function showExtraFieldsByNoteType(noteType) {
+  hideAllExtraFields();
+  
+  switch(noteType) {
+    case 'material':
+      document.getElementById("material-fields").style.display = "block";
+      break;
+    case 'group':
+      document.getElementById("worker-group-fields").style.display = "block";
+      break;
+    case 'dayLabor':
+      document.getElementById("day-labor-fields").style.display = "block";
+      break;
+  }
+}
+
+// 根據備註類型顯示相應的編輯表單額外欄位
+function showEditExtraFieldsByNoteType(noteType) {
+  hideAllEditExtraFields();
+  
+  switch(noteType) {
+    case 'material':
+      document.getElementById("edit-material-fields").style.display = "block";
+      break;
+    case 'group':
+      document.getElementById("edit-worker-group-fields").style.display = "block";
+      break;
+    case 'dayLabor':
+      document.getElementById("edit-day-labor-fields").style.display = "block";
+      break;
+  }
+}
+
 // 編輯工人記錄
 function editWorker(index) {
   editingWorkerId = index;
   const worker = workers[index];
   
-  // 填充編輯表單
+  // 填充編輯表單的基本欄位
   document.getElementById('edit-date').value = worker.date || '';
   document.getElementById('edit-type').value = worker.type || '';
   document.getElementById('edit-count').value = worker.count || '';
   document.getElementById('edit-content').value = worker.content || '';
+  
+  // 獲取工項的備註類型
+  const itemInfo = getItemInfo(worker.type);
+  if (itemInfo && itemInfo.noteType) {
+    // 根據備註類型顯示相應的額外欄位
+    showEditExtraFieldsByNoteType(itemInfo.noteType);
+    
+    // 填充額外欄位的值
+    switch(itemInfo.noteType) {
+      case 'material':
+        document.getElementById('edit-material-name').value = worker.materialName || '';
+        document.getElementById('edit-material-quantity').value = worker.materialQuantity || '';
+        document.getElementById('edit-material-unit').value = worker.materialUnit || '';
+        document.getElementById('edit-material-purpose').value = worker.materialPurpose || '';
+        break;
+      case 'group':
+        document.getElementById('edit-rough-worker-count').value = worker.roughWorkerCount || '';
+        document.getElementById('edit-stone-worker-count').value = worker.stoneWorkerCount || '';
+        break;
+      case 'dayLabor':
+        document.getElementById('edit-day-labor-count').value = worker.dayLaborCount || '';
+        break;
+    }
+  }
   
   // 顯示編輯表單
   document.getElementById('edit-form-container').style.display = 'block';
@@ -621,13 +946,51 @@ async function saveWorkerEdit() {
       return;
     }
     
-    // 更新記錄
-    workers[editingWorkerId] = {
+    // 基本記錄數據
+    const updatedWorker = {
       date: editDate,
       type: editType,
       count: editCount,
       content: editContent
     };
+    
+    // 根據工項的備註類型添加額外字段
+    const itemInfo = getItemInfo(editType);
+    if (itemInfo && itemInfo.noteType) {
+      switch(itemInfo.noteType) {
+        case 'material':
+          updatedWorker.materialName = document.getElementById('edit-material-name').value;
+          updatedWorker.materialQuantity = document.getElementById('edit-material-quantity').value;
+          updatedWorker.materialUnit = document.getElementById('edit-material-unit').value;
+          updatedWorker.materialPurpose = document.getElementById('edit-material-purpose').value;
+          
+          // 驗證材料相關字段
+          if (!updatedWorker.materialName || !updatedWorker.materialQuantity || !updatedWorker.materialUnit) {
+            alert('材料名稱、數量和單位不能為空！');
+            return;
+          }
+          break;
+        
+        case 'group':
+          updatedWorker.roughWorkerCount = document.getElementById('edit-rough-worker-count').value;
+          updatedWorker.stoneWorkerCount = document.getElementById('edit-stone-worker-count').value;
+          
+          // 驗證組工工程相關字段
+          if (!updatedWorker.roughWorkerCount || !updatedWorker.stoneWorkerCount) {
+            alert('粗工人數和打石人數不能為空！');
+            return;
+          }
+          break;
+          
+        case 'dayLabor':
+          updatedWorker.dayLaborCount = document.getElementById('edit-day-labor-count').value;
+          // 點工數量不是必填的，所以不需要驗證
+          break;
+      }
+    }
+    
+    // 更新記錄
+    workers[editingWorkerId] = updatedWorker;
     
     const saved = await save();
     if (saved) {
@@ -657,6 +1020,9 @@ function renderItemCompanyList() {
   let html = "";
   
   itemCompanyData.forEach((pair, index) => {
+    // 獲取備註類型文字
+    const noteTypeText = getNoteTypeText(pair.noteType || 'none');
+    
     // 檢查當前索引是否為編輯狀態
     if (index === currentItemEditIndex) {
       html += `
@@ -666,7 +1032,28 @@ function renderItemCompanyList() {
           <input id="edit-item-${index}" value="${pair.item || ''}">
           <div>公司名稱:</div>
           <input id="edit-company-${index}" value="${pair.company || ''}">
-          <div>
+          
+          <div style="margin-top: 10px;">備註選項:</div>
+          <div class="note-options">
+            <div class="note-option">
+              <input type="radio" name="edit-note-type-${index}" value="none" id="edit-note-none-${index}" ${pair.noteType === 'none' ? 'checked' : ''}>
+              <label for="edit-note-none-${index}">無備註</label>
+            </div>
+            <div class="note-option">
+              <input type="radio" name="edit-note-type-${index}" value="group" id="edit-note-group-${index}" ${pair.noteType === 'group' ? 'checked' : ''}>
+              <label for="edit-note-group-${index}">組工工程</label>
+            </div>
+            <div class="note-option">
+              <input type="radio" name="edit-note-type-${index}" value="material" id="edit-note-material-${index}" ${pair.noteType === 'material' ? 'checked' : ''}>
+              <label for="edit-note-material-${index}">材料</label>
+            </div>
+            <div class="note-option">
+              <input type="radio" name="edit-note-type-${index}" value="dayLabor" id="edit-note-day-labor-${index}" ${pair.noteType === 'dayLabor' ? 'checked' : ''}>
+              <label for="edit-note-day-labor-${index}">有無點工</label>
+            </div>
+          </div>
+          
+          <div style="margin-top: 10px;">
             <button onclick="saveEdit(${index})">保存</button>
             <button onclick="cancelEdit()">取消</button>
           </div>
@@ -678,6 +1065,7 @@ function renderItemCompanyList() {
       <div class="item-company-pair">
         <div><strong>工項:</strong> ${pair.item || ''}</div>
         <div><strong>公司:</strong> ${pair.company || ''}</div>
+        <div><strong>備註:</strong> ${noteTypeText}</div>
         <div>
           <button onclick="editItemCompany(${index})">編輯</button>
           <button onclick="removeItemCompany(${index})">刪除</button>
@@ -690,15 +1078,29 @@ function renderItemCompanyList() {
   document.getElementById("item-company-list").innerHTML = html;
 }
 
+// 獲取備註類型的文字描述
+function getNoteTypeText(noteType) {
+  switch(noteType) {
+    case 'group': return '組工工程';
+    case 'material': return '材料';
+    case 'dayLabor': return '有無點工';
+    default: return '無';
+  }
+}
+
 // 渲染移動版工項與公司列表
 function renderItemCompanyListMobile() {
   let html = "";
   
   itemCompanyData.forEach((pair, index) => {
+    // 獲取備註類型文字
+    const noteTypeText = getNoteTypeText(pair.noteType || 'none');
+    
     html += `
     <div class="item-company-pair">
       <div><strong>工項:</strong> ${pair.item || ''}</div>
       <div><strong>公司:</strong> ${pair.company || ''}</div>
+      <div><strong>備註:</strong> ${noteTypeText}</div>
       <div>
         <button onclick="editItemCompanyMobile(${index})">編輯</button>
         <button onclick="removeItemCompanyMobile(${index})">刪除</button>
@@ -710,10 +1112,33 @@ function renderItemCompanyListMobile() {
   document.getElementById("item-company-list-mobile").innerHTML = html;
 }
 
+// 獲取選定的備註類型 (桌面版)
+function getSelectedNoteType() {
+  const radios = document.getElementsByName('note-type');
+  for (const radio of radios) {
+    if (radio.checked) {
+      return radio.value;
+    }
+  }
+  return 'none';
+}
+
+// 獲取選定的備註類型 (移動版)
+function getSelectedNoteTypeMobile() {
+  const radios = document.getElementsByName('note-type-mobile');
+  for (const radio of radios) {
+    if (radio.checked) {
+      return radio.value;
+    }
+  }
+  return 'none';
+}
+
 // 新增工項與公司 (移動版)
 function addItemCompanyMobile() {
   const itemName = document.getElementById("item-name-mobile").value.trim();
   const companyName = document.getElementById("company-name-mobile").value.trim();
+  const noteType = getSelectedNoteTypeMobile();
   
   if (!itemName || !companyName) {
     alert("工項名稱和公司名稱都不能為空!");
@@ -730,7 +1155,11 @@ function addItemCompanyMobile() {
     return;
   }
   
-  itemCompanyData.push({ item: itemName, company: companyName });
+  itemCompanyData.push({ 
+    item: itemName, 
+    company: companyName,
+    noteType: noteType
+  });
   
   save().then(saved => {
     if (saved) {
@@ -739,6 +1168,7 @@ function addItemCompanyMobile() {
       renderItemCompanyListMobile();
       document.getElementById("item-name-mobile").value = "";
       document.getElementById("company-name-mobile").value = "";
+      document.getElementById("note-none-mobile").checked = true;
     }
   });
 }
@@ -746,10 +1176,29 @@ function addItemCompanyMobile() {
 // 編輯工項與公司 (移動版)
 function editItemCompanyMobile(index) {
   const pair = itemCompanyData[index];
+  
+  // 顯示對話框讓用戶輸入工項名稱和公司名稱
   const newItem = prompt("請輸入新的工項名稱:", pair.item);
   if (newItem !== null) {
     const newCompany = prompt("請輸入新的公司名稱:", pair.company);
     if (newCompany !== null) {
+      // 讓用戶選擇備註類型
+      const currentNoteText = getNoteTypeText(pair.noteType || 'none');
+      const noteTypeOptions = "請選擇備註類型:\n1. 無備註\n2. 組工工程\n3. 材料\n4. 有無點工\n\n當前選擇: " + currentNoteText;
+      const noteChoice = prompt(noteTypeOptions, "1");
+      
+      let newNoteType = 'none';
+      
+      // 根據選擇設置備註類型
+      if (noteChoice) {
+        switch (noteChoice.trim()) {
+          case '2': newNoteType = 'group'; break;
+          case '3': newNoteType = 'material'; break;
+          case '4': newNoteType = 'dayLabor'; break;
+          default: newNoteType = 'none';
+        }
+      }
+      
       // 檢查是否與其他記錄重複
       const isDuplicate = itemCompanyData.some((p, idx) => 
         idx !== index && p.item === newItem && p.company === newCompany
@@ -761,7 +1210,11 @@ function editItemCompanyMobile(index) {
       }
       
       const oldItemName = itemCompanyData[index].item;
-      itemCompanyData[index] = { item: newItem, company: newCompany };
+      itemCompanyData[index] = { 
+        item: newItem, 
+        company: newCompany,
+        noteType: newNoteType
+      };
       
       // 如果工項名稱已更改，需要更新相關記錄
       if (oldItemName !== newItem) {
@@ -811,6 +1264,7 @@ function removeItemCompanyMobile(index) {
 async function addItemCompany() {
   const itemName = document.getElementById("item-name").value.trim();
   const companyName = document.getElementById("company-name").value.trim();
+  const noteType = getSelectedNoteType();
   
   if (!itemName || !companyName) {
     alert("工項名稱和公司名稱都不能為空!");
@@ -827,7 +1281,11 @@ async function addItemCompany() {
     return;
   }
   
-  itemCompanyData.push({ item: itemName, company: companyName });
+  itemCompanyData.push({ 
+    item: itemName, 
+    company: companyName,
+    noteType: noteType
+  });
   
   const saved = await save();
   if (saved) {
@@ -838,6 +1296,7 @@ async function addItemCompany() {
   // 清空輸入欄位
   document.getElementById("item-name").value = "";
   document.getElementById("company-name").value = "";
+  document.getElementById("note-none").checked = true;
 }
 
 // 開始編輯工項與公司
@@ -857,6 +1316,16 @@ async function saveEdit(index) {
   const newItemName = document.getElementById(`edit-item-${index}`).value.trim();
   const newCompanyName = document.getElementById(`edit-company-${index}`).value.trim();
   
+  // 獲取選定的備註類型
+  let newNoteType = 'none';
+  const radios = document.getElementsByName(`edit-note-type-${index}`);
+  for (const radio of radios) {
+    if (radio.checked) {
+      newNoteType = radio.value;
+      break;
+    }
+  }
+  
   if (!newItemName || !newCompanyName) {
     alert("工項名稱和公司名稱都不能為空!");
     return;
@@ -874,11 +1343,13 @@ async function saveEdit(index) {
   
   // 保存原始工項名稱，用於稍後更新相關記錄
   const oldItemName = itemCompanyData[index].item;
+  const oldNoteType = itemCompanyData[index].noteType || 'none';
   
   // 更新工項與公司數據
   itemCompanyData[index] = { 
     item: newItemName, 
-    company: newCompanyName 
+    company: newCompanyName,
+    noteType: newNoteType
   };
   
   // 如果工項名稱已更改，需要更新相關記錄
@@ -898,6 +1369,12 @@ async function saveEdit(index) {
       // 如果不存在，添加新工項
       workerTypes.push(newItemName);
     }
+  }
+  
+  // 如果備註類型已更改，可能需要更新相關記錄的額外字段
+  if (oldNoteType !== newNoteType) {
+    // 此處可以添加備註類型變更的處理邏輯
+    // 例如，可能需要清除或初始化與備註類型相關的額外字段
   }
   
   // 結束編輯狀態
@@ -1017,12 +1494,60 @@ async function addWorker(){
     return;
   }
   
-  workers.push({
+  // 基本記錄數據
+  const newWorker = {
     date: date.value,
     type: typeValue,
     count: count.value,
-    content: content.value // 工作內容
-  });
+    content: content.value
+  };
+  
+  // 根據工項的備註類型添加額外字段
+  const itemInfo = getItemInfo(typeValue);
+  if (itemInfo && itemInfo.noteType) {
+    switch(itemInfo.noteType) {
+      case 'material':
+        const materialName = document.getElementById('material-name').value;
+        const materialQuantity = document.getElementById('material-quantity').value;
+        const materialUnit = document.getElementById('material-unit').value;
+        const materialPurpose = document.getElementById('material-purpose').value;
+        
+        // 驗證材料相關字段
+        if (!materialName || !materialQuantity || !materialUnit) {
+          alert('材料名稱、數量和單位不能為空！');
+          return;
+        }
+        
+        newWorker.materialName = materialName;
+        newWorker.materialQuantity = materialQuantity;
+        newWorker.materialUnit = materialUnit;
+        newWorker.materialPurpose = materialPurpose;
+        break;
+      
+      case 'group':
+        const roughWorkerCount = document.getElementById('rough-worker-count').value;
+        const stoneWorkerCount = document.getElementById('stone-worker-count').value;
+        
+        // 驗證組工工程相關字段
+        if (!roughWorkerCount || !stoneWorkerCount) {
+          alert('粗工人數和打石人數不能為空！');
+          return;
+        }
+        
+        newWorker.roughWorkerCount = roughWorkerCount;
+        newWorker.stoneWorkerCount = stoneWorkerCount;
+        break;
+        
+      case 'dayLabor':
+        const dayLaborCount = document.getElementById('day-labor-count').value;
+        // 點工數量不是必填的
+        
+        newWorker.dayLaborCount = dayLaborCount;
+        break;
+    }
+  }
+  
+  workers.push(newWorker);
 
   const saved = await save();
   if (saved) {
@@ -1030,10 +1555,32 @@ async function addWorker(){
     render();
   }
   
+  // 清空所有額外欄位
+  clearExtraFields();
+  
   // 只清空部分輸入欄位，保留日期
   typeSelect.selectedIndex = 0; // 重置選擇
   count.value = "";
   content.value = "";
+}
+
+// 清空所有額外欄位
+function clearExtraFields() {
+  // 清空材料相關欄位
+  document.getElementById('material-name').value = '';
+  document.getElementById('material-quantity').value = '';
+  document.getElementById('material-unit').value = '';
+  document.getElementById('material-purpose').value = '';
+  
+  // 清空組工工程相關欄位
+  document.getElementById('rough-worker-count').value = '';
+  document.getElementById('stone-worker-count').value = '';
+  
+  // 清空點工相關欄位
+  document.getElementById('day-labor-count').value = '';
+  
+  // 隱藏所有額外欄位
+  hideAllExtraFields();
 }
 
 async function remove(i){
