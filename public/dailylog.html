@@ -659,16 +659,47 @@ let workerHelperVisible = true;
 // 存儲發現重複的日期索引
 let duplicateLogIndex = -1;
 
+// 將此修改版本的 save() 函數替換原有的函數
 async function save(){
   try {
-    showLoading(true);
-    await saveProjectData("logs", logs);
-    showLoading(false);
+    // 添加日誌記錄，幫助診斷問題
+    console.log("正在保存數據...", "workers 長度:", workers.length);
+    
+    // 確保當前項目名稱存在
+    if (!currentProjectName || currentProjectName === "載入中...") {
+      console.error("沒有當前項目名稱，無法保存數據");
+      showToast("保存失敗：沒有有效的項目名稱", "error");
+      return false;
+    }
+    
+    // 確保數據是有效的陣列
+    if (!Array.isArray(workers)) {
+      console.error("workers不是陣列");
+      workers = [];
+    }
+    
+    // 保存數據，並等待完成
+    await saveProjectData("workers", workers);
+    console.log("workers數據保存成功");
+    
+    await saveProjectData("workerTypes", workerTypes);
+    await saveProjectData("itemCompanyData", itemCompanyData);
+    
+    // 在保存後立即驗證數據是否成功保存
+    try {
+      const savedWorkers = await getProjectData("workers");
+      console.log("驗證保存的workers數據:", savedWorkers ? savedWorkers.length : 0, "條記錄");
+      if (!savedWorkers || savedWorkers.length !== workers.length) {
+        console.warn("保存的數據與當前數據不一致");
+      }
+    } catch (verifyError) {
+      console.error("驗證保存數據失敗:", verifyError);
+    }
+    
     return true;
   } catch (error) {
     console.error("保存數據失敗:", error);
     showToast("保存失敗，請重試", "error");
-    showLoading(false);
     return false;
   }
 }

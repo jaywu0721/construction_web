@@ -463,24 +463,53 @@ function showToast(message, type = 'success') {
 }
 
 // 頁面加載時初始化數據
+// 將此修改版本的 initData() 函數替換原有的函數
 async function initData() {
   try {
     // 顯示載入中提示
     document.getElementById('loading-indicator').classList.add('active');
     
     // 獲取當前建案名稱
-    currentProjectName = await getCurrentProject();
-    document.getElementById("current-project-name").innerText = currentProjectName;
+    try {
+      currentProjectName = await getCurrentProject();
+      console.log("當前項目名稱:", currentProjectName);
+      document.getElementById("current-project-name").innerText = currentProjectName;
+    } catch (error) {
+      console.error("獲取當前建案名稱失敗:", error);
+      currentProjectName = "未知建案";
+      document.getElementById("current-project-name").innerText = currentProjectName;
+      showToast("獲取項目名稱失敗", "error");
+    }
     
     // 獲取數據
-    const workersData = await getProjectData("workers");
-    const workerTypesData = await getProjectData("workerTypes");
-    const itemCompanyDataResult = await getProjectData("itemCompanyData");
+    try {
+      console.log("正在獲取workers數據...");
+      const workersData = await getProjectData("workers");
+      console.log("獲取到workers數據:", workersData ? workersData.length : 0, "條記錄");
+      
+      // 確保數據是陣列
+      workers = Array.isArray(workersData) ? workersData : [];
+      console.log("處理後的workers數據長度:", workers.length);
+    } catch (error) {
+      console.error("獲取workers數據失敗:", error);
+      workers = [];
+    }
     
-    // 確保數據是數組
-    workers = Array.isArray(workersData) ? workersData : [];
-    workerTypes = Array.isArray(workerTypesData) ? workerTypesData : [];
-    itemCompanyData = Array.isArray(itemCompanyDataResult) ? itemCompanyDataResult : [];
+    try {
+      const workerTypesData = await getProjectData("workerTypes");
+      workerTypes = Array.isArray(workerTypesData) ? workerTypesData : [];
+    } catch (error) {
+      console.error("獲取workerTypes數據失敗:", error);
+      workerTypes = [];
+    }
+    
+    try {
+      const itemCompanyDataResult = await getProjectData("itemCompanyData");
+      itemCompanyData = Array.isArray(itemCompanyDataResult) ? itemCompanyDataResult : [];
+    } catch (error) {
+      console.error("獲取itemCompanyData數據失敗:", error);
+      itemCompanyData = [];
+    }
     
     // 隱藏載入中提示
     document.getElementById('loading-indicator').classList.remove('active');
